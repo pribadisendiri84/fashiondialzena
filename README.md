@@ -1,146 +1,98 @@
-# FashionDialZena
+# FashionDialZena (Laravel)
 
-Katalog fashion FashionDialZena — tampilan depan & belakang, order via WhatsApp.
+Katalog fashion + admin stok. Data produk, kategori, New Arrival, Best Seller, dan Best Product disimpan di MySQL.
 
-Repo GitHub: https://github.com/pribadisendiri84/fashiondialzena
+Repo: https://github.com/pribadisendiri84/fashiondialzena
 
----
+## Stack
 
-## Push ke GitHub (Manual)
+- Laravel 13 (PHP 8.2+)
+- MySQL (Hostinger) / SQLite (lokal)
 
-Repo ini memakai **SSH key terpisah** dari akun Git Bukalapak di laptop.
+Ini stack yang didukung Hostinger. Document root harus mengarah ke folder `public/`.
 
-### 1. Masuk ke folder project
+## Jalankan lokal
 
 ```bash
 cd ~/bukalapak/Noted/fashiondialzena
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve
 ```
 
-### 2. Pastikan identitas Git untuk repo ini (lokal)
+- Website: http://127.0.0.1:8000
+- Admin: http://127.0.0.1:8000/admin/login
+- Email: `admin@fashiondialzena.com`
+- Password: `admin123` (ganti setelah login pertama)
 
-Jangan pakai `--global`, supaya tidak mengubah repo kerja.
+## Deploy Hostinger
+
+1. Buat database MySQL di hPanel.
+2. Upload project (atau git clone) ke hosting.
+3. SSH / Terminal Hostinger:
 
 ```bash
+composer install --no-dev --optimize-autoloader
+cp .env.example .env
+php artisan key:generate
+```
+
+4. Isi `.env`:
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://fashiondialzena.com
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_DATABASE=nama_database_hostinger
+DB_USERNAME=user_database
+DB_PASSWORD=password_database
+
+# Cloudinary (Dashboard → API Keys → API environment variable)
+CLOUDINARY_URL=cloudinary://API_KEY:API_SECRET@CLOUD_NAME
+```
+
+5. Migrate + seed:
+
+```bash
+php artisan migrate --seed
+php artisan config:cache
+php artisan route:cache
+php artisan storage:link
+```
+
+6. Di hPanel → Website → document root: `public`
+
+7. Pastikan folder `storage` dan `bootstrap/cache` writable (775).
+
+## Foto produk (Cloudinary)
+
+Admin → Upload produk → pilih file depan & belakang.
+
+1. File naik ke Cloudinary
+2. Database hanya menyimpan URL (`img_front` / `img_back`)
+3. Boleh juga paste URL manual jika tidak upload file
+
+Paket gratis Cloudinary biasanya cukup untuk toko kecil. Secret hanya di `.env`, jangan di-commit.
+
+## Admin
+
+- `/admin/login` — masuk
+- `/admin` — pembukuan
+- `/admin/products/create` — upload produk (+ foto ke Cloudinary)
+- `/admin/stock-ins` — tambah stok
+- `/admin/sales` — catat penjualan
+- `/admin/categories` — kategori
+- `/admin/settings` — nomor WhatsApp
+
+## Git (identitas personal, sama pola dedet18)
+
+```bash
+cd ~/bukalapak/Noted/fashiondialzena
 git config user.name "pribadisendiri84"
 git config user.email "pribadisendiri@gmail.com"
+git config core.sshCommand "ssh -i ~/.ssh/id_ed25519_dedet18 -o IdentitiesOnly=yes"
 ```
-
-Cek:
-
-```bash
-git config user.email
-git config --global user.email
-```
-
-- Lokal → email personal
-- Global → boleh tetap email Bukalapak
-
-### 3. Pastikan SSH key personal sudah ada
-
-Key khusus repo personal (sama dengan dedet18):
-
-```bash
-ls ~/.ssh/id_ed25519_dedet18 ~/.ssh/id_ed25519_dedet18.pub
-```
-
-Kalau belum ada, buat:
-
-```bash
-ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_dedet18 -C "pribadisendiri84-dedet18"
-```
-
-Copy public key:
-
-```bash
-cat ~/.ssh/id_ed25519_dedet18.pub
-```
-
-Tambahkan ke GitHub → **Settings → SSH and GPG keys → New SSH key**  
-https://github.com/settings/keys
-
-### 4. Tes koneksi SSH (pakai key personal)
-
-```bash
-ssh -i ~/.ssh/id_ed25519_dedet18 -o IdentitiesOnly=yes -T git@github.com
-```
-
-Kalau berhasil, muncul:
-
-```text
-Hi pribadisendiri84! You've successfully authenticated...
-```
-
-### 5. Pastikan remote repo benar
-
-```bash
-git remote -v
-```
-
-Harus menunjuk ke:
-
-```text
-git@github.com:pribadisendiri84/fashiondialzena.git
-```
-
-Repo ini sudah diset pakai SSH key khusus lewat:
-
-```bash
-git config core.sshcommand
-```
-
-### 6. Commit & push
-
-```bash
-git add .
-git status
-git commit -m "Update katalog FashionDialZena"
-git push origin main
-```
-
-Push pertama kali (kalau branch belum pernah di-push):
-
-```bash
-git push -u origin main
-```
-
----
-
-## Cek sedang pakai Git yang mana
-
-Jalankan di folder `fashiondialzena`:
-
-```bash
-echo "Name: $(git config user.name)"
-echo "Email: $(git config user.email)"
-echo "Remote: $(git remote get-url origin)"
-echo "SSH: $(git config core.sshcommand)"
-```
-
----
-
-## Struktur file
-
-```text
-fashiondialzena/
-├── index.html      # Katalog fashion
-├── CNAME           # Custom domain GitHub Pages
-├── README.md       # Panduan ini
-└── .gitignore
-```
-
----
-
-## Deploy (GitHub Pages)
-
-1. Buka repo → **Settings → Pages**
-2. Source: **Deploy from a branch**
-3. Branch: **main** / folder **/ (root)**
-4. Save
-
-Website:
-
-```text
-https://fashiondialzena.com/
-```
-
-Custom domain GitHub Pages memakai file `CNAME` berisi `fashiondialzena.com`. Kalau masih terbuka lewat `github.io`, halaman akan redirect ke domain utama.
