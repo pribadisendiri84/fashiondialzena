@@ -58,4 +58,17 @@ class OrderItem extends Model
     {
         return Attribute::get(fn () => 'Rp'.number_format((int) $this->total, 0, ',', '.'));
     }
+
+    protected function grossProfit(): Attribute
+    {
+        $refund = (int) $this->returns->sum('refund_amount');
+        $cogsReversed = (int) $this->returns->sum('cogs_reversed');
+
+        return Attribute::get(fn () => ((int) $this->total - $refund) - ((int) $this->cogs_total - $cogsReversed));
+    }
+
+    protected function grossProfitFormatted(): Attribute
+    {
+        return Attribute::get(fn () => 'Rp'.number_format($this->gross_profit, 0, ',', '.'));
+    }
 }

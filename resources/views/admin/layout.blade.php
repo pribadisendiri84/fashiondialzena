@@ -3,36 +3,67 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>@yield('title', 'Admin') — FashionDialZena</title>
+<title>@yield('title', 'Admin') — ALZena Fashion</title>
 <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.default.min.css">
 </head>
 <body>
-<header class="topbar">
-  <div class="brand">FashionDialZena Admin</div>
-  <nav class="nav">
-    <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">Dashboard</a>
-    <a href="{{ route('admin.sales.index') }}" class="{{ request()->routeIs('admin.sales.*') ? 'active' : '' }}">Penjualan</a>
-    <a href="{{ route('admin.returns.index') }}" class="{{ request()->routeIs('admin.returns.*') ? 'active' : '' }}">Retur</a>
-    <a href="{{ route('admin.stock-ins.index') }}" class="{{ request()->routeIs('admin.stock-ins.*') ? 'active' : '' }}">Stok masuk</a>
-    <a href="{{ route('admin.products.index') }}" class="{{ request()->routeIs('admin.products.*') ? 'active' : '' }}">Produk</a>
-    <a href="{{ route('admin.categories.index') }}" class="{{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">Kategori</a>
-    <a href="{{ route('admin.settings.edit') }}" class="{{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">Pengaturan</a>
-    <a href="{{ route('home') }}" target="_blank">Lihat Website</a>
-    <form method="post" action="{{ route('admin.logout') }}" style="display:inline">
-      @csrf
-      <button class="btn gray" type="submit">Keluar</button>
-    </form>
+<div class="shell">
+<aside class="sidebar" id="sidebar">
+  <a class="side-brand" href="{{ route('admin.dashboard') }}">
+    <img src="{{ asset('images/logo-mark.png') }}" alt="">
+    <span>ALZena<small>Temukan Fashion-mu di Sini</small></span>
+  </a>
+
+  <nav class="side-nav">
+    @php
+      $menu = [
+        ['route' => 'admin.dashboard', 'href' => route('admin.dashboard'), 'label' => 'Dashboard', 'icon' => 'home'],
+        ['route' => 'admin.ledger', 'href' => route('admin.ledger'), 'label' => 'Pembukuan', 'icon' => 'chart'],
+        ['route' => 'admin.products.*', 'href' => route('admin.products.index'), 'label' => 'Produk', 'icon' => 'box'],
+        ['route' => 'admin.sales.*', 'href' => route('admin.sales.index'), 'label' => 'Penjualan', 'icon' => 'cart'],
+        ['route' => 'admin.stock-ins.*', 'href' => route('admin.stock-ins.index'), 'label' => 'Stok masuk', 'icon' => 'inbox'],
+        ['route' => 'admin.returns.*', 'href' => route('admin.returns.index'), 'label' => 'Retur & Refund', 'icon' => 'undo'],
+        ['route' => 'admin.categories.*', 'href' => route('admin.categories.index'), 'label' => 'Kategori', 'icon' => 'tag'],
+        ['route' => 'admin.settings.*', 'href' => route('admin.settings.edit'), 'label' => 'Pengaturan', 'icon' => 'gear'],
+      ];
+    @endphp
+    @foreach($menu as $item)
+      <a href="{{ $item['href'] }}" class="{{ request()->routeIs($item['route']) ? 'active' : '' }}">
+        @include('admin.partials.icon', ['name' => $item['icon']])
+        {{ $item['label'] }}
+      </a>
+    @endforeach
   </nav>
-</header>
-<main class="wrap">
-  @if(session('ok'))<div class="alert ok">{{ session('ok') }}</div>@endif
-  @if($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
-  @yield('content')
-</main>
+
+  <div class="side-foot">
+    <a class="side-link" href="{{ route('home') }}" target="_blank">
+      @include('admin.partials.icon', ['name' => 'external'])
+      Lihat website
+    </a>
+    <form method="post" action="{{ route('admin.logout') }}">
+      @csrf
+      <button class="btn gray full-btn" type="submit">Keluar</button>
+    </form>
+  </div>
+</aside>
+
+<div class="content">
+  <div class="mobile-bar">
+    <button class="btn gray" type="button" onclick="document.getElementById('sidebar').classList.toggle('open')">☰ Menu</button>
+    <span class="brand">ALZena Admin</span>
+  </div>
+  <main class="wrap">
+    @if(session('ok'))<div class="alert ok">{{ session('ok') }}</div>@endif
+    @if($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
+    @yield('content')
+  </main>
+</div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/js/tom-select.complete.min.js"></script>
 <script>
-document.querySelectorAll('select.js-searchable').forEach(function (el) {
+function initSearchable(el) {
+  if (!el || el.tomselect) return;
   new TomSelect(el, {
     create: false,
     allowEmptyOption: true,
@@ -40,6 +71,16 @@ document.querySelectorAll('select.js-searchable').forEach(function (el) {
     placeholder: el.dataset.placeholder || 'Cari lalu pilih…',
     sortField: { field: 'text', direction: 'asc' },
   });
+}
+
+document.querySelectorAll('select.js-searchable').forEach(initSearchable);
+
+document.addEventListener('reset', function (event) {
+  window.setTimeout(function () {
+    event.target.querySelectorAll('select').forEach(function (select) {
+      if (select.tomselect) select.tomselect.setValue(select.value, true);
+    });
+  }, 0);
 });
 
 function pickPhoto(id) {
@@ -85,6 +126,39 @@ function kb(size) {
   return Math.max(1, Math.round(size / 1024));
 }
 
+function showPhotoPreview(destId, src) {
+  var img = document.getElementById(destId + '_preview');
+  var empty = document.getElementById(destId + '_empty');
+  var wrap = document.getElementById(destId + '_wrap');
+  var clear = document.getElementById(destId + '_clear');
+  if (!img) return;
+  if (src) {
+    img.src = src;
+    img.hidden = false;
+    if (empty) empty.hidden = true;
+    if (wrap) wrap.classList.add('filled');
+    if (clear) clear.hidden = false;
+  } else {
+    img.removeAttribute('src');
+    img.hidden = true;
+    if (empty) empty.hidden = false;
+    if (wrap) wrap.classList.remove('filled');
+    if (clear) clear.hidden = true;
+  }
+}
+
+function clearPhoto(destId) {
+  var dest = document.getElementById(destId);
+  var cam = document.getElementById(destId + '_cam');
+  var label = document.getElementById(destId + '_name');
+  var url = document.getElementById(destId === 'photo_front' ? 'img_front' : 'img_back');
+  if (dest) dest.value = '';
+  if (cam) cam.value = '';
+  if (url) url.value = '';
+  if (label) label.textContent = 'Foto dikompres otomatis saat dipilih. Cek preview, lalu Simpan.';
+  showPhotoPreview(destId, '');
+}
+
 function applyCompressedPhoto(dest, file, label) {
   if (!file || dest.dataset.compressing === '1') return;
   dest.dataset.compressing = '1';
@@ -96,14 +170,16 @@ function applyCompressedPhoto(dest, file, label) {
     dt.items.add(ready);
     dest.files = dt.files;
     dest.removeAttribute('required');
+    showPhotoPreview(dest.id, URL.createObjectURL(ready));
     if (label) {
-      label.textContent = ready.name + ' (' + kb(file.size) + ' KB → ' + kb(ready.size) + ' KB)';
+      label.textContent = ready.name + ' (' + kb(file.size) + ' KB → ' + kb(ready.size) + ' KB). Cek preview, lalu Simpan.';
     }
   }).catch(function () {
     dest.dataset.compressing = '0';
     var dt = new DataTransfer();
     dt.items.add(file);
     dest.files = dt.files;
+    showPhotoPreview(dest.id, URL.createObjectURL(file));
     if (label) label.textContent = file.name;
   });
 }
@@ -126,6 +202,16 @@ function bindPhotoInputs(camId, destId, nameId) {
 
 bindPhotoInputs('photo_front_cam', 'photo_front', 'photo_front_name');
 bindPhotoInputs('photo_back_cam', 'photo_back', 'photo_back_name');
+
+['img_front', 'img_back'].forEach(function (id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', function () {
+    var destId = id === 'img_front' ? 'photo_front' : 'photo_back';
+    showPhotoPreview(destId, el.value.trim());
+  });
+});
 </script>
+@stack('scripts')
 </body>
 </html>

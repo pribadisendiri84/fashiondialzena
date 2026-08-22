@@ -22,6 +22,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::middleware(AdminAuthenticate::class)->group(function () {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('pembukuan', [DashboardController::class, 'ledger'])->name('ledger');
         Route::resource('sales', OrderController::class)->parameters(['sales' => 'order'])->only(['index', 'store', 'destroy']);
         Route::resource('returns', OrderReturnController::class)
             ->parameters(['returns' => 'orderReturn'])

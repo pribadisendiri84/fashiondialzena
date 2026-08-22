@@ -57,35 +57,44 @@
   </div>
   @endunless
 
+  @foreach([
+    ['side' => 'front', 'label' => 'Foto depan'],
+    ['side' => 'back', 'label' => 'Foto belakang'],
+  ] as $photo)
+    @php
+      $side = $photo['side'];
+      $urlField = 'img_'.$side;
+      $currentUrl = old($urlField, $product->{$urlField});
+    @endphp
   <div class="full photo-upload">
-    <label>Foto depan</label>
-    @if($product->img_front)
-      <img class="preview" src="{{ $product->img_front }}" alt="Foto depan">
-    @endif
-    <input class="file-input" id="photo_front" type="file" name="photo_front" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp" {{ $product->exists ? '' : ($cloudinaryReady ? 'required' : '') }}>
-    <input class="file-input" id="photo_front_cam" type="file" accept="image/*" capture="environment">
-    <div class="photo-actions">
-      <button class="btn gray" type="button" onclick="pickPhoto('photo_front')">Galeri / file</button>
-      <button class="btn gray" type="button" onclick="pickPhoto('photo_front_cam')">Kamera</button>
+    <label>{{ $photo['label'] }}</label>
+    <div class="preview-wrap {{ $currentUrl ? 'filled' : '' }}" id="photo_{{ $side }}_wrap">
+      @if($currentUrl)
+        <img class="preview" id="photo_{{ $side }}_preview" src="{{ $currentUrl }}" alt="Preview {{ $side === 'front' ? 'depan' : 'belakang' }}">
+      @else
+        <img class="preview" id="photo_{{ $side }}_preview" alt="" hidden>
+      @endif
+      <span class="preview-empty" id="photo_{{ $side }}_empty" @if($currentUrl) hidden @endif>
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4 4 3 3-2 4 3"/></svg>
+        Belum ada foto
+      </span>
     </div>
-    <p class="hint file-name" id="photo_front_name">* Foto dikompres otomatis saat dipilih. Lalu Simpan.</p>
-    <input name="img_front" value="{{ old('img_front', $product->exists ? $product->img_front : '') }}" placeholder="https://... (opsional jika sudah upload file)">
-  </div>
-
-  <div class="full photo-upload">
-    <label>Foto belakang</label>
-    @if($product->img_back)
-      <img class="preview" src="{{ $product->img_back }}" alt="Foto belakang">
-    @endif
-    <input class="file-input" id="photo_back" type="file" name="photo_back" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp" {{ $product->exists ? '' : ($cloudinaryReady ? 'required' : '') }}>
-    <input class="file-input" id="photo_back_cam" type="file" accept="image/*" capture="environment">
-    <div class="photo-actions">
-      <button class="btn gray" type="button" onclick="pickPhoto('photo_back')">Galeri / file</button>
-      <button class="btn gray" type="button" onclick="pickPhoto('photo_back_cam')">Kamera</button>
+    <div class="photo-fields">
+      <input class="file-input" id="photo_{{ $side }}" type="file" name="photo_{{ $side }}" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp" {{ $product->exists ? '' : ($cloudinaryReady ? 'required' : '') }}>
+      <input class="file-input" id="photo_{{ $side }}_cam" type="file" accept="image/*" capture="environment">
+      <div class="photo-actions">
+        <button class="btn gray" type="button" onclick="pickPhoto('photo_{{ $side }}')">Galeri / file</button>
+        <button class="btn gray" type="button" onclick="pickPhoto('photo_{{ $side }}_cam')">Kamera</button>
+        <button class="btn gray" type="button" id="photo_{{ $side }}_clear" onclick="clearPhoto('photo_{{ $side }}')" @unless($currentUrl) hidden @endunless>Hapus</button>
+      </div>
+      <p class="hint" id="photo_{{ $side }}_name">Foto dikompres otomatis saat dipilih. Cek preview, lalu Simpan.</p>
+      <label class="photo-url">
+        <span>Atau tempel link foto</span>
+        <input name="{{ $urlField }}" id="{{ $urlField }}" value="{{ $currentUrl }}" placeholder="https://...">
+      </label>
     </div>
-    <p class="hint file-name" id="photo_back_name">* Foto dikompres otomatis saat dipilih. Lalu Simpan.</p>
-    <input name="img_back" value="{{ old('img_back', $product->exists ? $product->img_back : '') }}" placeholder="https://... (opsional jika sudah upload file)">
   </div>
+  @endforeach
 
   <div class="full check">
     <label><input type="checkbox" name="is_new" value="1" @checked(old('is_new', $product->is_new))> New Arrival</label>

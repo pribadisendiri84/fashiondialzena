@@ -1,4 +1,4 @@
-const CACHE = 'dialzena-v1';
+const CACHE = 'alzena-v2';
 const PRECACHE = [
   '/',
   '/offline.html',

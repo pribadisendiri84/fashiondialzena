@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Services\CloudinaryUploader;
 use App\Services\InventoryLedger;
 use Illuminate\Http\Request;
@@ -16,11 +17,19 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
+        $search = trim((string) $request->input('q'));
         $query = Product::query()
             ->with(['category', 'variants'])
             ->withSum('orderItems as sold_qty', 'quantity')
             ->latest();
 
+        $query->when($search !== '', function ($q) use ($search) {
+            $q->where(function ($match) use ($search) {
+                $match->where('name', 'like', '%'.$search.'%')
+                    ->orWhereHas('category', fn ($category) => $category->where('name', 'like', '%'.$search.'%'))
+                    ->orWhereHas('variants', fn ($variant) => $variant->where('sku', 'like', '%'.$search.'%'));
+            });
+        });
         $query->when($request->filter === 'new', fn ($q) => $q->where('is_new', true));
         $query->when($request->filter === 'best', fn ($q) => $q->where('is_best_seller', true));
         $query->when($request->filter === 'featured', fn ($q) => $q->where('is_featured', true));
@@ -29,6 +38,11 @@ class ProductController extends Controller
         return view('admin.products.index', [
             'products' => $query->get(),
             'filter' => $request->filter,
+            'search' => $search,
+            'productCount' => Product::query()->where('is_active', true)->count(),
+            'skuCount' => ProductVariant::query()->where('is_active', true)->count(),
+            'stock' => (int) ProductVariant::query()->sum('stock'),
+            'lowCount' => ProductVariant::query()->where('is_active', true)->where('stock', '<=', 3)->count(),
         ]);
     }
 

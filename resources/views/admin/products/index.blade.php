@@ -1,25 +1,70 @@
 @extends('admin.layout')
 @section('title', 'Produk')
 @section('content')
-<h1>Produk</h1>
-<p class="sub">Produk + SKU (warna/ukuran), harga pokok, harga jual, stok.</p>
-<p>
-  <a class="btn" href="{{ route('admin.products.create') }}">+ Upload produk</a>
-  <a class="btn gray" href="{{ route('admin.stock-ins.index') }}">+ Tambah stok</a>
-  <a class="btn gray" href="{{ route('admin.products.index') }}">Semua</a>
-  <a class="btn gray" href="{{ route('admin.products.index', ['filter' => 'new']) }}">New Arrival</a>
-  <a class="btn gray" href="{{ route('admin.products.index', ['filter' => 'best']) }}">Best Seller</a>
-  <a class="btn gray" href="{{ route('admin.products.index', ['filter' => 'featured']) }}">Best Product</a>
-  <a class="btn gray" href="{{ route('admin.products.index', ['filter' => 'low']) }}">Stok menipis</a>
-</p>
-<table class="table">
-  <tr><th>Foto</th><th>Nama</th><th>Kategori</th><th>SKU</th><th>Harga</th><th>Laku</th><th>Sisa</th><th>Section</th><th></th></tr>
-  @foreach($products as $product)
+<div class="page-head">
+  <div>
+    <h1>Produk</h1>
+    <p class="sub">Kelola katalog, SKU, harga, dan stok produk.</p>
+  </div>
+  <div class="actions head-actions">
+    <a class="btn gray" href="{{ route('admin.stock-ins.index') }}">@include('admin.partials.icon', ['name' => 'inbox']) Tambah stok</a>
+    <a class="btn" href="{{ route('admin.products.create') }}">@include('admin.partials.icon', ['name' => 'box']) Upload produk</a>
+  </div>
+</div>
+
+<div class="stat-row stat-row-4">
+  <div class="stat">
+    <span class="bubble tone-pink">@include('admin.partials.icon', ['name' => 'bag'])</span>
+    <div><div class="stat-label">Produk aktif</div><div class="stat-value">{{ $productCount }}<small>produk</small></div></div>
+  </div>
+  <div class="stat">
+    <span class="bubble tone-violet">@include('admin.partials.icon', ['name' => 'box'])</span>
+    <div><div class="stat-label">Total SKU aktif</div><div class="stat-value">{{ $skuCount }}<small>SKU</small></div></div>
+  </div>
+  <div class="stat">
+    <span class="bubble tone-blue">@include('admin.partials.icon', ['name' => 'stack'])</span>
+    <div><div class="stat-label">Stok tersedia</div><div class="stat-value">{{ $stock }}<small>pcs</small></div></div>
+  </div>
+  <div class="stat">
+    <span class="bubble tone-amber">@include('admin.partials.icon', ['name' => 'alert'])</span>
+    <div><div class="stat-label">Stok menipis (≤3)</div><div class="stat-value">{{ $lowCount }}<small>SKU</small></div></div>
+  </div>
+</div>
+
+<div class="panel table-panel">
+  <div class="panel-head table-toolbar">
+    <span class="panel-title">@include('admin.partials.icon', ['name' => 'box']) Daftar produk</span>
+    <form method="get" class="toolbar-form">
+      @if($filter)<input type="hidden" name="filter" value="{{ $filter }}">@endif
+      <input name="q" value="{{ $search }}" placeholder="Cari nama, SKU, kategori…">
+      <button class="btn gray" type="submit">Cari</button>
+      @if($search !== '')<a class="btn ghost" href="{{ route('admin.products.index', array_filter(['filter' => $filter])) }}">Reset</a>@endif
+    </form>
+  </div>
+  <div class="filter-tabs">
+    @foreach([
+      '' => 'Semua',
+      'new' => 'New Arrival',
+      'best' => 'Best Seller',
+      'featured' => 'Best Product',
+      'low' => 'Stok menipis',
+    ] as $value => $label)
+      <a class="{{ ($filter ?? '') === $value ? 'active' : '' }}" href="{{ route('admin.products.index', array_filter(['filter' => $value, 'q' => $search])) }}">{{ $label }}</a>
+    @endforeach
+  </div>
+  <div class="table-wrap">
+  <table class="table table-flat">
+  <tr><th>Produk</th><th>Kategori</th><th>SKU</th><th>Harga</th><th>Laku</th><th>Sisa</th><th>Label</th><th>Aksi</th></tr>
+  @forelse($products as $product)
   <tr>
-    <td><img class="thumb" src="{{ $product->img_front }}" alt=""></td>
-    <td>{{ $product->name }}</td>
+    <td>
+      <div class="product-cell">
+        <img class="thumb" src="{{ $product->img_front }}" alt="">
+        <div><b>{{ $product->name }}</b><span>{{ $product->variants->first()?->sku ?: 'Belum ada SKU' }}</span></div>
+      </div>
+    </td>
     <td>{{ $product->category->name }}</td>
-    <td>{{ $product->variants->count() }}</td>
+    <td>{{ $product->variants->count() }} varian</td>
     <td>{{ $product->price_formatted }}</td>
     <td>{{ (int) $product->sold_qty }}</td>
     <td>{{ $product->stock }}</td>
@@ -30,13 +75,19 @@
       @unless($product->is_active)<span class="badge" style="background:#eee;color:#777">Nonaktif</span>@endunless
     </td>
     <td>
-      <a class="btn gray" href="{{ route('admin.products.edit', $product) }}">SKU / Edit</a>
-      <form method="post" action="{{ route('admin.products.destroy', $product) }}" style="display:inline" onsubmit="return confirm('Hapus produk ini?')">
+      <div class="row-actions">
+      <a class="btn gray compact" href="{{ route('admin.products.edit', $product) }}">Edit / SKU</a>
+      <form method="post" action="{{ route('admin.products.destroy', $product) }}" onsubmit="return confirm('Hapus produk ini?')">
         @csrf @method('DELETE')
-        <button class="btn red" type="submit">Hapus</button>
+        <button class="btn red compact" type="submit">Hapus</button>
       </form>
+      </div>
     </td>
   </tr>
-  @endforeach
+  @empty
+  <tr><td colspan="8" class="empty-state">Produk tidak ditemukan.</td></tr>
+  @endforelse
 </table>
+  </div>
+</div>
 @endsection

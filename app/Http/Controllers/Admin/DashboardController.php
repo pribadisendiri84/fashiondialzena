@@ -2,55 +2,73 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\ResolvesDateRange;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderReturn;
 use App\Models\ProductVariant;
 use App\Models\StockIn;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index()
+    use ResolvesDateRange;
+
+    public function index(Request $request)
     {
-        $monthStart = now()->startOfMonth()->toDateString();
-        $monthEnd = now()->endOfMonth()->toDateString();
+        $range = $this->dateRange($request);
 
-        $ordersMonth = Order::query()->whereBetween('sold_at', [$monthStart, $monthEnd]);
-        $itemsMonth = OrderItem::query()->whereHas('order', fn ($q) => $q->whereBetween('sold_at', [$monthStart, $monthEnd]));
-        $returnsMonth = OrderReturn::query()->whereBetween('returned_at', [$monthStart, $monthEnd]);
+        $ordersPeriod = Order::query()->whereBetween('sold_at', [$range['from'], $range['to']]);
+        $itemsPeriod = OrderItem::query()->whereHas('order', fn ($q) => $q->whereBetween('sold_at', [$range['from'], $range['to']]));
+        $returnsPeriod = OrderReturn::query()->whereBetween('returned_at', [$range['from'], $range['to']]);
 
-        $soldMonth = (int) (clone $itemsMonth)->sum('quantity');
-        $revenueMonth = (int) (clone $ordersMonth)->sum('subtotal');
-        $cogsMonth = (int) (clone $ordersMonth)->sum('cogs_total');
-        $returnedMonth = (int) (clone $returnsMonth)->sum('quantity');
-        $refundMonth = (int) (clone $returnsMonth)->sum('refund_amount');
-        $cogsReversedMonth = (int) (clone $returnsMonth)->sum('cogs_reversed');
-        $inMonth = (int) StockIn::query()->whereBetween('received_at', [$monthStart, $monthEnd])->sum('quantity');
+        $soldPeriod = (int) (clone $itemsPeriod)->sum('quantity');
+        $revenuePeriod = (int) (clone $ordersPeriod)->sum('subtotal');
+        $cogsPeriod = (int) (clone $ordersPeriod)->sum('cogs_total');
+        $returnedPeriod = (int) (clone $returnsPeriod)->sum('quantity');
+        $refundPeriod = (int) (clone $returnsPeriod)->sum('refund_amount');
+        $cogsReversedPeriod = (int) (clone $returnsPeriod)->sum('cogs_reversed');
+        $inPeriod = (int) StockIn::query()->whereBetween('received_at', [$range['from'], $range['to']])->sum('quantity');
 
-        $netRevenue = $revenueMonth - $refundMonth;
-        $netCogs = $cogsMonth - $cogsReversedMonth;
+        $netRevenue = $revenuePeriod - $refundPeriod;
+        $netCogs = $cogsPeriod - $cogsReversedPeriod;
 
-        $items = ProductVariant::query()
-            ->with('product.category')
-            ->withSum('orderItems as sold_qty', 'quantity')
-            ->orderBy('sku')
-            ->get();
-
-        return view('admin.dashboard', [
+        return view('admin.dashboard', array_merge($range, [
             'skuCount' => ProductVariant::query()->where('is_active', true)->count(),
             'stock' => (int) ProductVariant::query()->sum('stock'),
             'low' => ProductVariant::query()->where('stock', '<=', 3)->count(),
-            'soldMonth' => $soldMonth,
-            'revenueMonth' => $revenueMonth,
-            'cogsMonth' => $cogsMonth,
-            'grossMonth' => $netRevenue - $netCogs,
-            'returnedMonth' => $returnedMonth,
-            'refundMonth' => $refundMonth,
-            'inMonth' => $inMonth,
+            'soldPeriod' => $soldPeriod,
+            'revenuePeriod' => $revenuePeriod,
+            'cogsPeriod' => $cogsPeriod,
+            'grossPeriod' => $revenuePeriod - $cogsPeriod,
+            'netPeriod' => $netRevenue - $netCogs,
+            'returnedPeriod' => $returnedPeriod,
+            'refundPeriod' => $refundPeriod,
+            'inPeriod' => $inPeriod,
+            'ordersPeriod' => (clone $ordersPeriod)->count(),
             'soldAll' => (int) OrderItem::query()->sum('quantity'),
             'revenueAll' => (int) Order::query()->sum('subtotal'),
+        ]));
+    }
+
+    public function ledger(Request $request)
+    {
+        $range = $this->dateRange($request);
+
+        $items = ProductVariant::query()
+            ->with('product.category')
+            ->withSum(['orderItems as sold_qty' => function ($query) use ($range) {
+                $query->whereHas('order', fn ($q) => $q->whereBetween('sold_at', [$range['from'], $range['to']]));
+            }], 'quantity')
+            ->orderBy('sku')
+            ->get();
+
+        return view('admin.ledger', array_merge($range, [
             'items' => $items,
-        ]);
+            'skuCount' => $items->where('is_active', true)->count(),
+            'stock' => (int) $items->sum('stock'),
+            'stockValue' => (int) $items->sum(fn ($item) => $item->stock * $item->cost_price),
+        ]));
     }
 }

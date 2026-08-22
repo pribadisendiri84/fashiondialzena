@@ -1,51 +1,136 @@
 @extends('admin.layout')
 @section('title', 'Dashboard')
 @section('content')
-<h1>Pembukuan</h1>
-<p class="sub">Satu baris = satu SKU. Kalau belum isi warna/ukuran, SKU sementara memakai kode dari nama produk.</p>
-<div class="cards">
-  <div class="card">Total SKU aktif<b>{{ $skuCount }}</b></div>
-  <div class="card">Stok sisa<b>{{ $stock }}</b></div>
-  <div class="card">Stok menipis (≤3)<b>{{ $low }}</b></div>
-  <div class="card">Stok masuk bulan ini<b>{{ $inMonth }}</b></div>
-  <div class="card">Terjual bulan ini<b>{{ $soldMonth }}</b></div>
-  <div class="card">Omzet bulan ini<b>Rp{{ number_format($revenueMonth, 0, ',', '.') }}</b></div>
-  <div class="card">HPP bulan ini<b>Rp{{ number_format($cogsMonth, 0, ',', '.') }}</b></div>
-  <div class="card">Laba kotor bulan ini<b>Rp{{ number_format($grossMonth, 0, ',', '.') }}</b></div>
-  <div class="card">Retur bulan ini<b>{{ $returnedMonth }}</b></div>
-  <div class="card">Refund bulan ini<b>Rp{{ number_format($refundMonth, 0, ',', '.') }}</b></div>
-  <div class="card">Total terjual<b>{{ $soldAll }}</b></div>
-  <div class="card">Total omzet<b>Rp{{ number_format($revenueAll, 0, ',', '.') }}</b></div>
+@php
+  $rp = fn ($n) => 'Rp'.number_format((int) $n, 0, ',', '.');
+@endphp
+
+<div class="page-head">
+  <div>
+    <h1>Dashboard</h1>
+    <p class="sub">Ringkasan stok dan keuangan toko. Detail per SKU ada di menu Pembukuan.</p>
+  </div>
 </div>
-<p>
-  <a class="btn" href="{{ route('admin.sales.index') }}">+ Catat penjualan</a>
-  <a class="btn gray" href="{{ route('admin.returns.index') }}">+ Retur</a>
-  <a class="btn gray" href="{{ route('admin.stock-ins.index') }}">+ Tambah stok</a>
-  <a class="btn gray" href="{{ route('admin.products.create') }}">Upload produk</a>
-</p>
-<table class="table">
-  <tr>
-    <th>Produk / SKU</th>
-    <th>Varian</th>
-    <th>HPP</th>
-    <th>Jual</th>
-    <th>Laku</th>
-    <th>Sisa</th>
-    <th>Nilai stok</th>
-  </tr>
-  @foreach($items as $item)
-  <tr>
-    <td>
-      {{ $item->product->name }}<br>
-      <span class="hint">{{ $item->sku }}</span>
-    </td>
-    <td>{{ collect([$item->color, $item->size])->filter()->implode(' / ') ?: 'Default' }}</td>
-    <td>{{ $item->cost_price_formatted }}</td>
-    <td>{{ $item->sell_price_formatted }}</td>
-    <td>{{ (int) $item->sold_qty }}</td>
-    <td>{{ $item->stock }}</td>
-    <td>Rp{{ number_format($item->stock * $item->cost_price, 0, ',', '.') }}</td>
-  </tr>
-  @endforeach
-</table>
+
+@include('admin.partials.date-range', ['resetUrl' => route('admin.dashboard')])
+
+<div class="stat-row">
+  <div class="stat">
+    <span class="bubble tone-pink">@include('admin.partials.icon', ['name' => 'bag'])</span>
+    <div>
+      <div class="stat-label">Total SKU aktif</div>
+      <div class="stat-value">{{ $skuCount }}<small>SKU</small></div>
+    </div>
+  </div>
+  <div class="stat">
+    <span class="bubble tone-blue">@include('admin.partials.icon', ['name' => 'stack'])</span>
+    <div>
+      <div class="stat-label">Stok sisa</div>
+      <div class="stat-value">{{ $stock }}<small>pcs</small></div>
+    </div>
+  </div>
+  <div class="stat">
+    <span class="bubble tone-amber">@include('admin.partials.icon', ['name' => 'alert'])</span>
+    <div>
+      <div class="stat-label">Stok menipis (≤3)</div>
+      <div class="stat-value">{{ $low }}<small>SKU</small></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    @include('admin.partials.icon', ['name' => 'chart'])
+    Stok &amp; Aktivitas
+  </div>
+  <div class="metric-row">
+    <div class="metric">
+      <span class="bubble tone-green">@include('admin.partials.icon', ['name' => 'download'])</span>
+      <div>
+        <div class="metric-label">Stok masuk periode ini</div>
+        <div class="metric-value">{{ $inPeriod }}<small>pcs</small></div>
+      </div>
+    </div>
+    <div class="metric">
+      <span class="bubble tone-pink">@include('admin.partials.icon', ['name' => 'cart'])</span>
+      <div>
+        <div class="metric-label">Terjual periode ini</div>
+        <div class="metric-value">{{ $soldPeriod }}<small>pcs</small></div>
+      </div>
+    </div>
+    <div class="metric">
+      <span class="bubble tone-violet">@include('admin.partials.icon', ['name' => 'money'])</span>
+      <div>
+        <div class="metric-label">Total terjual</div>
+        <div class="metric-value">{{ $soldAll }}<small>pcs</small></div>
+      </div>
+    </div>
+    <div class="metric">
+      <span class="bubble tone-blue">@include('admin.partials.icon', ['name' => 'trend'])</span>
+      <div>
+        <div class="metric-label">Total omzet</div>
+        <div class="metric-value">{{ $rp($revenueAll) }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    @include('admin.partials.icon', ['name' => 'wallet'])
+    Keuangan
+  </div>
+  <div class="money-grid">
+    <div class="metric money">
+      <div>
+        <div class="metric-label">Omzet periode ini</div>
+        <div class="metric-value">{{ $rp($revenuePeriod) }}</div>
+      </div>
+      <span class="bubble tone-green">@include('admin.partials.icon', ['name' => 'trend'])</span>
+    </div>
+    <div class="metric money">
+      <div>
+        <div class="metric-label">HPP periode ini</div>
+        <div class="metric-value">{{ $rp($cogsPeriod) }}</div>
+      </div>
+      <span class="bubble tone-violet">@include('admin.partials.icon', ['name' => 'tag'])</span>
+    </div>
+    <div class="metric money">
+      <div>
+        <div class="metric-label">Laba kotor periode ini</div>
+        <div class="metric-value">{{ $rp($grossPeriod) }}</div>
+      </div>
+      <span class="bubble tone-green">@include('admin.partials.icon', ['name' => 'money'])</span>
+    </div>
+    <div class="metric money">
+      <div>
+        <div class="metric-label">Retur periode ini</div>
+        <div class="metric-value">{{ $returnedPeriod }}<small>pcs</small></div>
+      </div>
+      <span class="bubble tone-amber">@include('admin.partials.icon', ['name' => 'undo'])</span>
+    </div>
+    <div class="metric money">
+      <div>
+        <div class="metric-label">Refund periode ini</div>
+        <div class="metric-value">{{ $rp($refundPeriod) }}</div>
+      </div>
+      <span class="bubble tone-rose">@include('admin.partials.icon', ['name' => 'wallet'])</span>
+    </div>
+    <div class="metric money">
+      <div>
+        <div class="metric-label">Laba bersih periode ini</div>
+        <div class="metric-value">{{ $rp($netPeriod) }}</div>
+      </div>
+      <span class="bubble tone-blue">@include('admin.partials.icon', ['name' => 'chart'])</span>
+    </div>
+  </div>
+</div>
+
+<div class="summary">
+  <span class="bubble">@include('admin.partials.icon', ['name' => 'trophy'])</span>
+  <div>
+    <b>Ringkasan Performa {{ $periodLabel }}</b>
+    <p>Omzet {{ $rp($revenuePeriod) }} dengan laba bersih {{ $rp($netPeriod) }} dari {{ $ordersPeriod }} transaksi. Retur {{ $returnedPeriod }} pcs.</p>
+  </div>
+</div>
 @endsection

@@ -1,22 +1,32 @@
 @extends('admin.layout')
 @section('title', 'Stok masuk')
 @section('content')
-<h1>Tambah stok</h1>
-<p class="sub">Restock per SKU. Stok bertambah otomatis.</p>
-
-<div class="cards">
-  <div class="card">Masuk bulan ini<b>{{ $qty }}</b></div>
+<div class="page-head">
+  <div>
+    <h1>Tambah stok</h1>
+    <p class="sub">Restock per SKU. Stok bertambah otomatis setelah dicatat.</p>
+  </div>
 </div>
 
-<form method="get" class="form" style="margin-bottom:18px">
-  <div>
-    <label>Filter bulan</label>
-    <input type="month" name="month" value="{{ $month }}">
-  </div>
-  <div class="full"><button class="btn gray" type="submit">Lihat catatan</button></div>
-</form>
+@include('admin.partials.date-range', ['resetUrl' => route('admin.stock-ins.index')])
 
-<h2>Catat stok masuk</h2>
+<div class="stat-row">
+  <div class="stat">
+    <span class="bubble tone-pink">@include('admin.partials.icon', ['name' => 'inbox'])</span>
+    <div><div class="stat-label">Stok masuk</div><div class="stat-value">{{ $qty }}<small>pcs</small></div></div>
+  </div>
+  <div class="stat">
+    <span class="bubble tone-blue">@include('admin.partials.icon', ['name' => 'stack'])</span>
+    <div><div class="stat-label">Aktivitas restock</div><div class="stat-value">{{ $entryCount }}<small>transaksi</small></div></div>
+  </div>
+  <div class="stat">
+    <span class="bubble tone-green">@include('admin.partials.icon', ['name' => 'money'])</span>
+    <div><div class="stat-label">Nilai stok masuk</div><div class="stat-value money-value">Rp{{ number_format($stockValue, 0, ',', '.') }}</div></div>
+  </div>
+</div>
+
+<div class="panel form-panel">
+<div class="panel-head">@include('admin.partials.icon', ['name' => 'inbox']) Catat stok masuk</div>
 <form class="form" method="post" action="{{ route('admin.stock-ins.store') }}">
   @csrf
   <div class="full">
@@ -52,12 +62,21 @@
     <input name="note" value="{{ old('note') }}" placeholder="No. invoice">
   </div>
   <div class="full">
-    <button class="btn" type="submit">Simpan stok masuk</button>
+    <div class="form-actions">
+      <button class="btn gray" type="reset">Bersihkan</button>
+      <button class="btn" type="submit">@include('admin.partials.icon', ['name' => 'download']) Simpan stok masuk</button>
+    </div>
   </div>
 </form>
+</div>
 
-<h2 style="margin-top:28px">Riwayat stok masuk</h2>
-<table class="table">
+<div class="panel table-panel">
+<div class="panel-head table-toolbar">
+  <span class="panel-title">@include('admin.partials.icon', ['name' => 'chart']) Riwayat stok masuk</span>
+  <span class="toolbar-note">{{ $entryCount }} transaksi · {{ $periodLabel }}</span>
+</div>
+<div class="table-wrap">
+<table class="table table-flat">
   <tr>
     <th>Tanggal</th>
     <th>SKU</th>
@@ -83,7 +102,9 @@
     </td>
   </tr>
   @empty
-  <tr><td colspan="7">Belum ada stok masuk di bulan ini.</td></tr>
+  <tr><td colspan="7">Belum ada stok masuk di periode ini.</td></tr>
   @endforelse
 </table>
+</div>
+</div>
 @endsection

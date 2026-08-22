@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\ResolvesDateRange;
 use App\Http\Controllers\Controller;
 use App\Models\OrderItem;
 use App\Models\OrderReturn;
@@ -12,21 +13,18 @@ use InvalidArgumentException;
 
 class OrderReturnController extends Controller
 {
+    use ResolvesDateRange;
+
     public function index(Request $request)
     {
-        $month = $request->input('month', now()->format('Y-m'));
+        $range = $this->dateRange($request);
 
-        $query = OrderReturn::query()
+        $returns = OrderReturn::query()
             ->with(['item.order', 'item.product', 'item.variant'])
+            ->whereBetween('returned_at', [$range['from'], $range['to']])
             ->latest('returned_at')
-            ->latest('id');
-
-        if ($month) {
-            $query->whereYear('returned_at', substr($month, 0, 4))
-                ->whereMonth('returned_at', substr($month, 5, 2));
-        }
-
-        $returns = $query->get();
+            ->latest('id')
+            ->get();
 
         $items = OrderItem::query()
             ->with(['order', 'product', 'variant', 'returns'])
@@ -36,13 +34,14 @@ class OrderReturnController extends Controller
             ->filter(fn (OrderItem $item) => $item->returnableQuantity() > 0)
             ->values();
 
-        return view('admin.returns.index', [
+        return view('admin.returns.index', array_merge($range, [
             'returns' => $returns,
             'items' => $items,
-            'month' => $month,
+            'returnCount' => $returns->count(),
             'qty' => (int) $returns->sum('quantity'),
             'refund' => (int) $returns->sum('refund_amount'),
-        ]);
+            'restockedQty' => (int) $returns->where('restocked', true)->sum('quantity'),
+        ]));
     }
 
     public function store(Request $request, InventoryLedger $ledger)

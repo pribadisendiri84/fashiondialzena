@@ -1,23 +1,32 @@
 @extends('admin.layout')
 @section('title', 'Retur')
 @section('content')
-<h1>Retur barang</h1>
-<p class="sub">Catat barang kembali. Jika dikembalikan ke stok, HPP penjualan ikut dibalik.</p>
-
-<div class="cards">
-  <div class="card">Qty retur bulan ini<b>{{ $qty }}</b></div>
-  <div class="card">Refund bulan ini<b>Rp{{ number_format($refund, 0, ',', '.') }}</b></div>
+<div class="page-head">
+  <div>
+    <h1>Retur barang</h1>
+    <p class="sub">Catat barang kembali. Jika dikembalikan ke stok, HPP penjualan ikut dibalik.</p>
+  </div>
 </div>
 
-<form method="get" class="form" style="margin-bottom:18px">
-  <div>
-    <label>Filter bulan</label>
-    <input type="month" name="month" value="{{ $month }}">
-  </div>
-  <div class="full"><button class="btn gray" type="submit">Lihat catatan</button></div>
-</form>
+@include('admin.partials.date-range', ['resetUrl' => route('admin.returns.index')])
 
-<h2>Catat retur</h2>
+<div class="stat-row">
+  <div class="stat">
+    <span class="bubble tone-amber">@include('admin.partials.icon', ['name' => 'undo'])</span>
+    <div><div class="stat-label">Barang diretur</div><div class="stat-value">{{ $qty }}<small>pcs · {{ $returnCount }} transaksi</small></div></div>
+  </div>
+  <div class="stat">
+    <span class="bubble tone-rose">@include('admin.partials.icon', ['name' => 'wallet'])</span>
+    <div><div class="stat-label">Total refund</div><div class="stat-value money-value">Rp{{ number_format($refund, 0, ',', '.') }}</div></div>
+  </div>
+  <div class="stat">
+    <span class="bubble tone-green">@include('admin.partials.icon', ['name' => 'stack'])</span>
+    <div><div class="stat-label">Kembali ke stok</div><div class="stat-value">{{ $restockedQty }}<small>pcs</small></div></div>
+  </div>
+</div>
+
+<div class="panel form-panel">
+<div class="panel-head">@include('admin.partials.icon', ['name' => 'undo']) Catat retur &amp; refund</div>
 <form class="form" method="post" action="{{ route('admin.returns.store') }}">
   @csrf
   <div class="full">
@@ -59,12 +68,21 @@
     <label><input type="checkbox" name="restocked" value="1" @checked(old('restocked', true))> Kembalikan ke stok</label>
   </div>
   <div class="full">
-    <button class="btn" type="submit">Simpan retur</button>
+    <div class="form-actions">
+      <button class="btn gray" type="reset">Bersihkan</button>
+      <button class="btn" type="submit">@include('admin.partials.icon', ['name' => 'undo']) Simpan retur</button>
+    </div>
   </div>
 </form>
+</div>
 
-<h2 style="margin-top:28px">Riwayat retur</h2>
-<table class="table">
+<div class="panel table-panel">
+<div class="panel-head table-toolbar">
+  <span class="panel-title">@include('admin.partials.icon', ['name' => 'chart']) Riwayat retur &amp; refund</span>
+  <span class="toolbar-note">{{ $returnCount }} transaksi · {{ $periodLabel }}</span>
+</div>
+<div class="table-wrap">
+<table class="table table-flat">
   <tr>
     <th>Tanggal</th>
     <th>No jual</th>
@@ -92,7 +110,9 @@
     </td>
   </tr>
   @empty
-  <tr><td colspan="8">Belum ada retur di bulan ini.</td></tr>
+  <tr><td colspan="8">Belum ada retur di periode ini.</td></tr>
   @endforelse
 </table>
+</div>
+</div>
 @endsection

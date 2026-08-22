@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\ResolvesDateRange;
 use App\Http\Controllers\Controller;
 use App\Models\ProductVariant;
 use App\Models\StockIn;
@@ -12,26 +13,27 @@ use InvalidArgumentException;
 
 class StockInController extends Controller
 {
+    use ResolvesDateRange;
+
     public function index(Request $request)
     {
-        $month = $request->input('month', now()->format('Y-m'));
+        $range = $this->dateRange($request);
 
-        $query = StockIn::query()->with('variant.product')->latest('received_at')->latest('id');
+        $entries = StockIn::query()
+            ->with('variant.product')
+            ->whereBetween('received_at', [$range['from'], $range['to']])
+            ->latest('received_at')
+            ->latest('id')
+            ->get();
 
-        if ($month) {
-            $query->whereYear('received_at', substr($month, 0, 4))
-                ->whereMonth('received_at', substr($month, 5, 2));
-        }
-
-        $entries = $query->get();
-
-        return view('admin.stock-ins.index', [
+        return view('admin.stock-ins.index', array_merge($range, [
             'entries' => $entries,
             'variants' => ProductVariant::query()->with('product')->where('is_active', true)->orderBy('sku')->get(),
-            'month' => $month,
+            'entryCount' => $entries->count(),
             'qty' => (int) $entries->sum('quantity'),
+            'stockValue' => (int) $entries->sum(fn ($entry) => $entry->quantity * $entry->unit_cost),
             'selectedVariantId' => $request->integer('variant_id') ?: null,
-        ]);
+        ]));
     }
 
     public function store(Request $request, InventoryLedger $ledger)

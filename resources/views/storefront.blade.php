@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#c45c7a">
-<meta name="description" content="Katalog FashionDialZena. Lihat produk dan pesan via WhatsApp.">
+<meta name="description" content="ALZena Fashion — Temukan Fashion-mu di Sini. Lihat produk dan pesan via WhatsApp.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="DialZena">
-<title>FashionDialZena — Fashion Store</title>
+<meta name="apple-mobile-web-app-title" content="ALZena">
+<title>ALZena Fashion — Temukan Fashion-mu di Sini</title>
 <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
 <link rel="icon" href="{{ asset('icons/icon-192.png') }}" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="{{ asset('icons/apple-touch-icon.png') }}">
@@ -20,7 +20,9 @@
   <div><a href="https://wa.me/{{ $wa }}" target="_blank">Chat WhatsApp →</a></div>
 </div>
 <nav class="nav">
-  <div class="logo">FashionDialZena<small>Your daily style</small></div>
+  <a class="logo" href="#katalog" aria-label="ALZena Fashion">
+    <img src="{{ asset('images/logo.png') }}" alt="ALZena Fashion">
+  </a>
   <div class="menu">
     <a href="#katalog">Katalog</a>
     <a href="#new">Terbaru</a>
@@ -34,11 +36,11 @@
 <section class="hero">
   <div class="hero-copy">
     <span class="eyebrow">KOLEKSI 2026</span>
-    <h1>Elegan.<br>Feminin.<br>Stylish.</h1>
-    <p>Koleksi fashion pilihan FashionDialZena. Lihat tampilan depan & belakang, pesan via WhatsApp.</p>
+    <h1>Temukan<br>Fashion-mu<br>di Sini</h1>
+    <p>Koleksi pilihan ALZena Fashion. Lihat tampilan depan & belakang, pesan langsung via WhatsApp.</p>
     <div>
       <button class="btn" onclick="document.getElementById('katalog').scrollIntoView({behavior:'smooth'})">Lihat Katalog →</button>
-      <a class="btn light" href="https://wa.me/{{ $wa }}?text={{ rawurlencode('Halo FashionDialZena 👋\n\nSaya ingin bertanya tentang produk & katalog. Terima kasih!') }}" target="_blank">Tanya Admin</a>
+      <a class="btn light" href="https://wa.me/{{ $wa }}?text={{ rawurlencode('Halo ALZena Fashion 👋\n\nSaya ingin bertanya tentang produk & katalog. Terima kasih!') }}" target="_blank">Tanya Admin</a>
     </div>
   </div>
   <div class="hero-img"></div>
@@ -81,7 +83,7 @@
 </section>
 
 <section id="best">
-  <div class="section-head"><h2>Best Seller</h2><p>Favorit pelanggan FashionDialZena</p></div>
+  <div class="section-head"><h2>Best Seller</h2><p>Favorit pelanggan ALZena Fashion</p></div>
   <div class="products">
     @forelse($bestSeller as $product)
       @include('partials.product-card', ['product' => $product, 'wa' => $wa])
@@ -92,7 +94,7 @@
 </section>
 
 <section id="featured">
-  <div class="section-head"><h2>Best Product</h2><p>Pilihan terbaik dari FashionDialZena</p></div>
+  <div class="section-head"><h2>Best Product</h2><p>Pilihan terbaik dari ALZena Fashion</p></div>
   <div class="products">
     @forelse($featured as $product)
       @include('partials.product-card', ['product' => $product, 'wa' => $wa])
@@ -103,7 +105,11 @@
 </section>
 
 <section id="katalog">
-  <div class="section-head"><h2>Semua Produk</h2><p>Katalog lengkap FashionDialZena</p></div>
+  <div class="section-head">
+    <h2 id="katalogTitle">Semua Produk</h2>
+    <p id="katalogHint">Katalog lengkap ALZena Fashion</p>
+  </div>
+  <p class="empty" id="searchEmpty" hidden>Tidak ada produk yang cocok. Coba kata lain atau pilih kategori.</p>
   <div class="products" id="allProducts">
     @forelse($products as $product)
       @include('partials.product-card', ['product' => $product, 'wa' => $wa])
@@ -115,9 +121,9 @@
 </main>
 
 <footer class="footer">
-  <div><h3>FashionDialZena</h3><p>Fashion elegan untuk keseharianmu. Pesan langsung via WhatsApp, tanpa ribet.</p></div>
+  <div><h3>ALZena Fashion</h3><p>Temukan Fashion-mu di Sini. Pesan langsung via WhatsApp, tanpa ribet.</p></div>
   <div><b>Katalog</b><a href="#new">Terbaru</a><a href="#best">Best Seller</a><a href="#featured">Best Product</a><a href="#katalog">Semua Produk</a></div>
-  <div><b>Hubungi</b><a href="https://wa.me/{{ $wa }}" target="_blank">WhatsApp</a><p>Transfer · QRIS · COD</p><p>© {{ date('Y') }} FashionDialZena</p></div>
+  <div><b>Hubungi</b><a href="https://wa.me/{{ $wa }}" target="_blank">WhatsApp</a><p>Transfer · QRIS · COD</p><p>© {{ date('Y') }} ALZena Fashion</p></div>
 </footer>
 
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
@@ -140,10 +146,25 @@ function openLightbox(el){
   document.getElementById('lightbox').classList.add('open');
 }
 function closeLightbox(){document.getElementById('lightbox').classList.remove('open')}
-function filterByCategory(name){document.getElementById('search').value=name;filterProducts();document.getElementById('katalog').scrollIntoView({behavior:'smooth'})}
-function filterProducts(){
-  const q=document.getElementById('search').value.toLowerCase();
-  document.querySelectorAll('#allProducts .product').forEach(x=>x.style.display=x.dataset.name.includes(q)?'':'none');
+function filterByCategory(name){
+  document.getElementById('search').value=name;
+  filterProducts(true);
+}
+function filterProducts(scroll){
+  const input=document.getElementById('search');
+  const q=(input.value||'').trim().toLowerCase();
+  const cards=document.querySelectorAll('#allProducts .product');
+  let shown=0;
+  cards.forEach(x=>{
+    const hit=!q || (x.dataset.name||'').includes(q);
+    x.style.display=hit?'':'none';
+    if(hit) shown++;
+  });
+  document.body.classList.toggle('is-searching', !!q);
+  document.getElementById('katalogTitle').textContent=q?'Hasil pencarian':'Semua Produk';
+  document.getElementById('katalogHint').textContent=q?'Menampilkan produk untuk “'+input.value.trim()+'”':'Katalog lengkap ALZena Fashion';
+  document.getElementById('searchEmpty').hidden=shown>0;
+  if(q && scroll!==false) document.getElementById('katalog').scrollIntoView({behavior:'smooth',block:'start'});
 }
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox()});
 
@@ -164,7 +185,7 @@ if ('serviceWorker' in navigator) {
   const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
   banner.innerHTML = isIos
     ? '<span>Pasang aplikasi: ketuk <b>Bagikan</b> lalu <b>Add to Home Screen</b></span><button type="button" class="pwa-dismiss" aria-label="Tutup">×</button>'
-    : '<span>Pasang FashionDialZena di layar utama</span><div><button type="button" class="pwa-install">Pasang</button><button type="button" class="pwa-dismiss" aria-label="Tutup">×</button></div>';
+    : '<span>Pasang ALZena Fashion di layar utama</span><div><button type="button" class="pwa-install">Pasang</button><button type="button" class="pwa-dismiss" aria-label="Tutup">×</button></div>';
   document.body.appendChild(banner);
 
   let deferredPrompt = null;

@@ -9,7 +9,7 @@
         ->values()
         ->all();
     $variantText = count($variantLines) ? implode("\n", $variantLines) : 'Stok habis / belum diisi';
-    $waText = rawurlencode("Halo FashionDialZena 👋\n\nSaya ingin pesan produk berikut:\n\n📦 Produk: {$product->name}\n🏷️ Kategori: {$product->category->name}\n💰 Harga: {$product->price_formatted}\n📋 SKU tersedia:\n{$variantText}\n\nMohon bantu proses pesanannya. Terima kasih!");
+    $waText = rawurlencode("Halo ALZena Fashion 👋\n\nSaya ingin pesan produk berikut:\n\n📦 Produk: {$product->name}\n🏷️ Kategori: {$product->category->name}\n💰 Harga: {$product->price_formatted}\n📋 SKU tersedia:\n{$variantText}\n\nMohon bantu proses pesanannya. Terima kasih!");
 @endphp
 <article class="product" data-name="{{ strtolower($product->name.' '.$product->category->name) }}">
   <div class="photo-duo" onclick="openLightbox(this)" data-name="{{ $product->name }}" data-price="{{ $product->price_formatted }}" data-front="{{ $product->img_front }}" data-back="{{ $product->img_back }}">

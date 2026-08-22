@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "FashionDialZena",
-  "short_name": "DialZena",
-  "description": "Katalog FashionDialZena. Lihat produk dan pesan via WhatsApp.",
+  "name": "ALZena Fashion",
+  "short_name": "ALZena",
+  "description": "Temukan Fashion-mu di Sini. Katalog ALZena Fashion, pesan via WhatsApp.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
