@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
+    'created_by',
     'order_item_id',
     'quantity',
     'reason',
@@ -26,6 +27,11 @@ class OrderReturn extends Model
             'returned_at' => 'date',
             'restocked' => 'boolean',
         ];
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function item(): BelongsTo

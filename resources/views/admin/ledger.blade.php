@@ -10,6 +10,9 @@
     <h1>Pembukuan</h1>
     <p class="sub">Satu baris = satu SKU. Kolom laku mengikuti periode terpilih, sedangkan stok sisa dan nilai stok memakai posisi terkini.</p>
   </div>
+  <div class="actions head-actions">
+    <a class="btn gray" href="{{ route('admin.ledger.export', request()->query()) }}">@include('admin.partials.icon', ['name' => 'download']) Export CSV</a>
+  </div>
 </div>
 
 @include('admin.partials.date-range', ['resetUrl' => route('admin.ledger')])
@@ -48,6 +51,7 @@
     <th>Laku<br><span class="hint">periode</span></th>
     <th>Sisa</th>
     <th>Nilai stok</th>
+    <th></th>
   </tr>
   @forelse($items as $item)
   <tr>
@@ -61,9 +65,12 @@
     <td>{{ (int) $item->sold_qty }}</td>
     <td>{{ $item->stock }}</td>
     <td>{{ $rp($item->stock * $item->cost_price) }}</td>
+    <td>
+      <a class="btn gray compact" href="{{ route('admin.variants.movements', $item) }}">Riwayat</a>
+    </td>
   </tr>
   @empty
-  <tr><td colspan="7" class="hint">Belum ada SKU. Upload produk dulu.</td></tr>
+  <tr><td colspan="8" class="hint">Belum ada SKU. Upload produk dulu.</td></tr>
   @endforelse
 </table>
 </div>

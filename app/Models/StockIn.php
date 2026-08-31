@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
+    'created_by',
     'product_variant_id',
     'quantity',
     'unit_cost',
@@ -21,6 +22,11 @@ class StockIn extends Model
         return [
             'received_at' => 'date',
         ];
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function variant(): BelongsTo

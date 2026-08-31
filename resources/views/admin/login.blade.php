@@ -15,8 +15,9 @@
   <label>Email</label>
   <input type="email" name="email" value="{{ old('email') }}" required autofocus>
   <label>Password</label>
-  <input type="password" name="password" required>
+  @include('admin.partials.password-field', ['name' => 'password', 'required' => true, 'autocomplete' => 'current-password'])
   <button class="btn" type="submit">Masuk</button>
 </form>
+@include('admin.partials.password-toggle-script')
 </body>
 </html>

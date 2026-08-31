@@ -77,10 +77,12 @@
     <td>
       <div class="row-actions">
       <a class="btn gray compact" href="{{ route('admin.products.edit', $product) }}">Edit / SKU</a>
+      @can('delete-records')
       <form method="post" action="{{ route('admin.products.destroy', $product) }}" onsubmit="return confirm('Hapus produk ini?')">
         @csrf @method('DELETE')
         <button class="btn red compact" type="submit">Hapus</button>
       </form>
+      @endcan
       </div>
     </td>
   </tr>

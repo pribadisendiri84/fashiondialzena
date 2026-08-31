@@ -15,6 +15,16 @@
     <span class="date-sep">—</span>
     <input type="date" name="to" value="{{ $to }}" max="{{ $today }}" aria-label="Tanggal akhir">
   </div>
+  @if(!empty($filters))
+    @foreach($filters as $filter)
+      <label class="filter-label" for="filter-{{ $filter['name'] }}">{{ $filter['label'] }}</label>
+      <select id="filter-{{ $filter['name'] }}" name="{{ $filter['name'] }}" class="filter-select">
+        @foreach($filter['options'] as $value => $label)
+          <option value="{{ $value }}" @selected((string) ($filter['value'] ?? '') === (string) $value)>{{ $label }}</option>
+        @endforeach
+      </select>
+    @endforeach
+  @endif
   <button class="btn" type="submit">Terapkan</button>
   @unless($isDefaultRange)
     <a class="btn ghost" href="{{ $resetUrl }}">Bulan ini</a>

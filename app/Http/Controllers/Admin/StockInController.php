@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Ability;
 use App\Http\Controllers\Concerns\ResolvesDateRange;
+use App\Http\Controllers\Concerns\ResolvesFinancialInput;
 use App\Http\Controllers\Controller;
 use App\Models\ProductVariant;
 use App\Models\StockIn;
@@ -14,13 +16,14 @@ use InvalidArgumentException;
 class StockInController extends Controller
 {
     use ResolvesDateRange;
+    use ResolvesFinancialInput;
 
     public function index(Request $request)
     {
         $range = $this->dateRange($request);
 
         $entries = StockIn::query()
-            ->with('variant.product')
+            ->with(['variant.product', 'creator'])
             ->whereBetween('received_at', [$range['from'], $range['to']])
             ->latest('received_at')
             ->latest('id')
@@ -48,13 +51,12 @@ class StockInController extends Controller
         ]);
 
         $variant = ProductVariant::query()->with('product')->findOrFail($data['product_variant_id']);
-        $unitCost = isset($data['unit_cost']) && $data['unit_cost'] !== ''
-            ? (int) preg_replace('/\D+/', '', (string) $data['unit_cost'])
-            : (int) $variant->cost_price;
+        $unitCost = $this->costFromRequest($request, (int) $variant->cost_price, 'unit_cost');
 
-        DB::transaction(function () use ($data, $variant, $unitCost, $ledger) {
+        DB::transaction(function () use ($data, $variant, $unitCost, $ledger, $request) {
             $entry = StockIn::query()->create([
                 'product_variant_id' => $variant->id,
+                'created_by' => $request->user()->id,
                 'quantity' => $data['quantity'],
                 'unit_cost' => $unitCost,
                 'source' => $data['source'] ?? null,
@@ -81,6 +83,8 @@ class StockInController extends Controller
 
     public function destroy(StockIn $stockIn, InventoryLedger $ledger)
     {
+        $this->authorize(Ability::DeleteRecords->value);
+
         $variant = $stockIn->variant;
 
         try {

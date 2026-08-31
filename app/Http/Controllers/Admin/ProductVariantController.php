@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Ability;
+use App\Http\Controllers\Concerns\ResolvesFinancialInput;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -12,19 +14,23 @@ use Illuminate\Validation\Rule;
 
 class ProductVariantController extends Controller
 {
+    use ResolvesFinancialInput;
+
     public function store(Request $request, Product $product, InventoryLedger $ledger)
     {
         $data = $this->validated($request, $product);
 
-        DB::transaction(function () use ($product, $data, $ledger) {
+        DB::transaction(function () use ($product, $data, $ledger, $request) {
             $initialStock = (int) $data['stock'];
             $data['stock'] = 0;
+            $data['created_by'] = $request->user()->id;
             $variant = $product->variants()->create($data);
 
             if ($initialStock > 0) {
                 $entry = $variant->stockIns()->create([
                     'quantity' => $initialStock,
                     'unit_cost' => $variant->cost_price,
+                    'created_by' => $request->user()->id,
                     'source' => 'Stok awal SKU',
                     'note' => 'Dicatat saat tambah SKU',
                     'received_at' => now()->toDateString(),
@@ -59,6 +65,8 @@ class ProductVariantController extends Controller
 
     public function destroy(Product $product, ProductVariant $variant)
     {
+        $this->authorize(Ability::DeleteRecords->value);
+
         abort_unless($variant->product_id === $product->id, 404);
 
         if ($variant->hasHistory()) {
@@ -89,7 +97,7 @@ class ProductVariantController extends Controller
             'color' => ['nullable', 'string', 'max:80'],
             'size' => ['nullable', 'string', 'max:40'],
             'stock' => [$variant ? 'nullable' : 'required', 'integer', 'min:0'],
-            'cost_price' => ['required'],
+            'cost_price' => [auth()->user()?->can(Ability::ViewFinancials->value) ? 'required' : 'nullable'],
             'sell_price' => ['required'],
             'is_active' => ['nullable', 'boolean'],
         ]);
@@ -107,7 +115,7 @@ class ProductVariantController extends Controller
             ]);
         }
 
-        $data['cost_price'] = (int) preg_replace('/\D+/', '', (string) $data['cost_price']);
+        $data['cost_price'] = $this->costFromRequest($request, (int) ($variant?->cost_price ?? 0));
         $data['sell_price'] = (int) preg_replace('/\D+/', '', (string) $data['sell_price']);
         $data['sku'] = strtoupper(trim($data['sku']));
         $data['color'] = $color;

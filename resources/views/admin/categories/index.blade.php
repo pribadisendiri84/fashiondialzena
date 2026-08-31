@@ -36,10 +36,12 @@
     </td>
     <td>{{ $category->sort_order }}</td>
     <td>
+      @can('delete-records')
       <form method="post" action="{{ route('admin.categories.destroy', $category) }}" onsubmit="return confirm('Hapus kategori ini?')">
         @csrf @method('DELETE')
         <button class="btn red" type="submit">Hapus</button>
       </form>
+      @endcan
     </td>
   </tr>
   @endforeach

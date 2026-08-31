@@ -19,10 +19,12 @@
     <span class="bubble tone-blue">@include('admin.partials.icon', ['name' => 'stack'])</span>
     <div><div class="stat-label">Aktivitas restock</div><div class="stat-value">{{ $entryCount }}<small>transaksi</small></div></div>
   </div>
+  @can('view-financials')
   <div class="stat">
     <span class="bubble tone-green">@include('admin.partials.icon', ['name' => 'money'])</span>
     <div><div class="stat-label">Nilai stok masuk</div><div class="stat-value money-value">Rp{{ number_format($stockValue, 0, ',', '.') }}</div></div>
   </div>
+  @endcan
 </div>
 
 <div class="panel form-panel">
@@ -44,11 +46,13 @@
     <label>Jumlah masuk</label>
     <input type="number" name="quantity" min="1" value="{{ old('quantity', 1) }}" required>
   </div>
+  @can('view-financials')
   <div>
     <label>HPP masuk (opsional)</label>
     <input name="unit_cost" value="{{ old('unit_cost') }}" placeholder="Kosong = HPP SKU saat ini">
     <p class="hint">* Kalau beda dari HPP lama, sistem hitung rata-rata tertimbang.</p>
   </div>
+  @endcan
   <div>
     <label>Tanggal masuk</label>
     <input type="date" name="received_at" value="{{ old('received_at', now()->toDateString()) }}" required>
@@ -81,9 +85,12 @@
     <th>Tanggal</th>
     <th>SKU</th>
     <th>Qty</th>
+    @can('view-financials')
     <th>HPP masuk</th>
+    @endcan
     <th>Sumber</th>
     <th>Catatan</th>
+    <th>Dicatat</th>
     <th></th>
   </tr>
   @forelse($entries as $entry)
@@ -91,18 +98,23 @@
     <td>{{ $entry->received_at->format('d/m/Y') }}</td>
     <td>{{ $entry->variant?->product?->name }} · {{ $entry->variant?->label }}</td>
     <td>+{{ $entry->quantity }}</td>
+    @can('view-financials')
     <td>Rp{{ number_format($entry->unit_cost, 0, ',', '.') }}</td>
+    @endcan
     <td>{{ $entry->source ?: '—' }}</td>
     <td>{{ $entry->note ?: '—' }}</td>
+    <td>{{ $entry->creator?->name ?: '—' }}</td>
     <td>
+      @can('delete-records')
       <form method="post" action="{{ route('admin.stock-ins.destroy', $entry) }}" onsubmit="return confirm('Hapus catatan ini? Stok akan dikurangi kembali.')">
         @csrf @method('DELETE')
         <button class="btn red" type="submit">Hapus</button>
       </form>
+      @endcan
     </td>
   </tr>
   @empty
-  <tr><td colspan="7">Belum ada stok masuk di periode ini.</td></tr>
+  <tr><td colspan="{{ auth()->user()->can('view-financials') ? 8 : 7 }}">Belum ada stok masuk di periode ini.</td></tr>
   @endforelse
 </table>
 </div>

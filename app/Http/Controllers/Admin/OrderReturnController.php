@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Ability;
 use App\Http\Controllers\Concerns\ResolvesDateRange;
 use App\Http\Controllers\Controller;
 use App\Models\OrderItem;
@@ -20,7 +21,7 @@ class OrderReturnController extends Controller
         $range = $this->dateRange($request);
 
         $returns = OrderReturn::query()
-            ->with(['item.order', 'item.product', 'item.variant'])
+            ->with(['item.order', 'item.product', 'item.variant', 'creator'])
             ->whereBetween('returned_at', [$range['from'], $range['to']])
             ->latest('returned_at')
             ->latest('id')
@@ -73,9 +74,10 @@ class OrderReturnController extends Controller
         $cogsReversed = $restocked ? (int) $item->unit_cost * $qty : 0;
 
         try {
-            DB::transaction(function () use ($data, $item, $qty, $refund, $restocked, $cogsReversed, $ledger) {
+            DB::transaction(function () use ($data, $item, $qty, $refund, $restocked, $cogsReversed, $ledger, $request) {
                 $return = OrderReturn::query()->create([
                     'order_item_id' => $item->id,
+                    'created_by' => $request->user()->id,
                     'quantity' => $qty,
                     'reason' => $data['reason'] ?? null,
                     'restocked' => $restocked,
@@ -107,6 +109,8 @@ class OrderReturnController extends Controller
 
     public function destroy(OrderReturn $orderReturn, InventoryLedger $ledger)
     {
+        $this->authorize(Ability::DeleteRecords->value);
+
         $orderReturn->load('item.variant');
 
         try {

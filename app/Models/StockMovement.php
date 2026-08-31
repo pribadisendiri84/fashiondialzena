@@ -30,4 +30,15 @@ class StockMovement extends Model
     {
         return $this->belongsTo(ProductVariant::class, 'product_variant_id');
     }
+
+    public function typeLabel(): string
+    {
+        return match ($this->type) {
+            'in' => 'Stok masuk',
+            'sale' => 'Terjual',
+            'return' => 'Retur',
+            'reversal' => 'Pembatalan',
+            default => $this->type,
+        };
+    }
 }

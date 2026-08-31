@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Ability;
+use App\Http\Controllers\Concerns\ExportsCsv;
 use App\Http\Controllers\Concerns\ResolvesDateRange;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ProductVariant;
+use App\Models\User;
 use App\Services\InventoryLedger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,18 +18,22 @@ use InvalidArgumentException;
 
 class OrderController extends Controller
 {
+    use ExportsCsv;
     use ResolvesDateRange;
 
     public function index(Request $request)
     {
         $range = $this->dateRange($request);
+        $recordedBy = $this->recordedByFilter($request);
 
-        $orders = Order::query()
-            ->with(['items.product', 'items.variant', 'items.returns'])
+        $ordersInRange = Order::query()
+            ->with(['items.product', 'items.variant', 'items.returns', 'creator'])
             ->whereBetween('sold_at', [$range['from'], $range['to']])
             ->latest('sold_at')
             ->latest('id')
             ->get();
+
+        $orders = $this->filterByRecorder($ordersInRange, $recordedBy);
 
         $items = $orders->pluck('items')->flatten();
         $returns = $items->pluck('returns')->flatten();
@@ -44,6 +51,9 @@ class OrderController extends Controller
         return view('admin.sales.index', array_merge($range, [
             'orders' => $visibleOrders,
             'search' => $search,
+            'recordedBy' => $recordedBy,
+            'recorderOptions' => $this->recorderOptions(),
+            'byRecorder' => $this->salesByRecorder($ordersInRange),
             'variants' => ProductVariant::query()
                 ->with('product')
                 ->where('is_active', true)
@@ -60,6 +70,136 @@ class OrderController extends Controller
         ]));
     }
 
+    public function export(Request $request)
+    {
+        $range = $this->dateRange($request);
+        $recordedBy = $this->recordedByFilter($request);
+        $seeFinancials = $request->user()->can(Ability::ViewFinancials->value);
+
+        $orders = $this->filterByRecorder(
+            Order::query()
+                ->with(['items.product', 'items.variant', 'creator'])
+                ->whereBetween('sold_at', [$range['from'], $range['to']])
+                ->latest('sold_at')
+                ->latest('id')
+                ->get(),
+            $recordedBy
+        );
+
+        $search = trim((string) $request->input('q'));
+        if ($search !== '') {
+            $orders = $orders->filter(fn (Order $order) => $this->matchesSearch($order, $search))->values();
+        }
+
+        $headers = ['Tanggal', 'Kode', 'Channel', 'Pembeli', 'Dicatat', 'SKU', 'Produk', 'Varian', 'Qty', 'Harga satuan', 'Subtotal'];
+        if ($seeFinancials) {
+            $headers = array_merge($headers, ['HPP satuan', 'HPP', 'Laba']);
+        }
+
+        $rows = [];
+        foreach ($orders as $order) {
+            foreach ($order->items as $item) {
+                $row = [
+                    $order->sold_at?->toDateString() ?: $order->sold_at,
+                    $order->code,
+                    $order->channel,
+                    $order->customer_name ?: '',
+                    $order->creator?->name ?: 'Tidak tercatat',
+                    $item->variant?->sku ?: '',
+                    $item->product?->name ?: '',
+                    collect([$item->variant?->color, $item->variant?->size])->filter()->implode(' / ') ?: 'Default',
+                    (int) $item->quantity,
+                    (int) $item->unit_price,
+                    (int) $item->total,
+                ];
+
+                if ($seeFinancials) {
+                    $row[] = (int) $item->unit_cost;
+                    $row[] = (int) $item->cogs_total;
+                    $row[] = (int) $item->total - (int) $item->cogs_total;
+                }
+
+                $rows[] = $row;
+            }
+        }
+
+        return $this->csvDownload(
+            'penjualan-'.$range['from'].'-'.$range['to'].'.csv',
+            $headers,
+            $rows
+        );
+    }
+
+    private function recordedByFilter(Request $request): ?string
+    {
+        $value = trim((string) $request->input('recorded_by', ''));
+
+        if ($value === '' || $value === 'all') {
+            return null;
+        }
+
+        if ($value === 'none') {
+            return 'none';
+        }
+
+        return ctype_digit($value) ? $value : null;
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Order>  $orders
+     * @return \Illuminate\Support\Collection<int, Order>
+     */
+    private function filterByRecorder($orders, ?string $recordedBy)
+    {
+        if ($recordedBy === null) {
+            return $orders;
+        }
+
+        if ($recordedBy === 'none') {
+            return $orders->whereNull('created_by')->values();
+        }
+
+        return $orders->where('created_by', (int) $recordedBy)->values();
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Order>  $orders
+     * @return \Illuminate\Support\Collection<int, array{name: string, orders: int, qty: int, revenue: int}>
+     */
+    private function salesByRecorder($orders)
+    {
+        return $orders
+            ->groupBy(fn (Order $order) => $order->created_by ?: 'none')
+            ->map(function ($group) {
+                $items = $group->pluck('items')->flatten();
+
+                return [
+                    'name' => $group->first()->creator?->name ?: 'Tidak tercatat',
+                    'orders' => $group->count(),
+                    'qty' => (int) $items->sum('quantity'),
+                    'revenue' => (int) $group->sum('subtotal'),
+                ];
+            })
+            ->sortByDesc('revenue')
+            ->values();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function recorderOptions(): array
+    {
+        $options = ['' => 'Semua orang'];
+
+        foreach (User::query()->orderBy('name')->get() as $user) {
+            $options[(string) $user->id] = $user->name;
+        }
+
+        $options['none'] = 'Tidak tercatat';
+
+        return $options;
+    }
+
     private function matchesSearch(Order $order, string $search): bool
     {
         $haystack = collect([
@@ -67,6 +207,7 @@ class OrderController extends Controller
             $order->channel,
             $order->customer_name,
             $order->note,
+            $order->creator?->name,
         ])->merge($order->items->flatMap(fn (OrderItem $item) => [
             $item->product?->name,
             $item->variant?->sku,
@@ -95,7 +236,7 @@ class OrderController extends Controller
         ]);
 
         try {
-            $order = DB::transaction(function () use ($data, $ledger) {
+            $order = DB::transaction(function () use ($data, $ledger, $request) {
                 $variantIds = collect($data['items'])
                     ->pluck('product_variant_id')
                     ->map(fn ($id) => (int) $id)
@@ -136,6 +277,7 @@ class OrderController extends Controller
 
                 $order = Order::query()->create([
                     'code' => 'TMP-'.uniqid(),
+                    'created_by' => $request->user()->id,
                     'channel' => $data['channel'],
                     'customer_name' => $data['customer_name'] ?? null,
                     'note' => $data['note'] ?? null,
@@ -186,6 +328,8 @@ class OrderController extends Controller
 
     public function destroy(Order $order, InventoryLedger $ledger)
     {
+        $this->authorize(Ability::DeleteRecords->value);
+
         $order->load(['items.returns', 'items.variant']);
 
         if ($order->items->contains(fn (OrderItem $item) => $item->returns->isNotEmpty())) {

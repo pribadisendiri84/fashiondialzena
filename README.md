@@ -51,8 +51,7 @@ DB_DATABASE=nama_database_hostinger
 DB_USERNAME=user_database
 DB_PASSWORD=password_database
 
-# Cloudinary (Dashboard → API Keys → API environment variable)
-CLOUDINARY_URL=cloudinary://API_KEY:API_SECRET@CLOUD_NAME
+# Foto produk: storage/app/public/products (wajib storage:link)
 ```
 
 5. Migrate + seed:

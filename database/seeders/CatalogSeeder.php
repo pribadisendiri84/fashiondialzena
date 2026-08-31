@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\UserRole;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Setting;
@@ -20,6 +21,7 @@ class CatalogSeeder extends Seeder
             [
                 'name' => 'Admin',
                 'password' => Hash::make('admin123'),
+                'role' => UserRole::Owner,
             ]
         );
 

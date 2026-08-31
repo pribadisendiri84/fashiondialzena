@@ -4,13 +4,25 @@
 <div class="page-head">
   <div>
     <h1>Penjualan</h1>
-    <p class="sub">Catat barang laku per SKU. Laba kotor = omzet − refund − (HPP − HPP retur yang kembali ke stok).</p>
+    <p class="sub">
+      Catat barang laku per SKU.
+      @can('view-financials') Laba kotor = omzet − refund − (HPP − HPP retur yang kembali ke stok). @endcan
+    </p>
+  </div>
+  <div class="actions head-actions">
+    <a class="btn gray" href="{{ route('admin.sales.export', request()->query()) }}">@include('admin.partials.icon', ['name' => 'download']) Export CSV</a>
   </div>
 </div>
 
 @include('admin.partials.date-range', [
   'resetUrl' => route('admin.sales.index'),
   'keep' => array_filter(['q' => $search]),
+  'filters' => [[
+    'name' => 'recorded_by',
+    'label' => 'Dicatat',
+    'value' => $recordedBy ?? '',
+    'options' => $recorderOptions,
+  ]],
 ])
 
 <div class="stat-row">
@@ -46,6 +58,7 @@
       <div class="stat-note">Total refund</div>
     </div>
   </div>
+  @can('view-financials')
   <div class="stat">
     <span class="bubble tone-violet">@include('admin.partials.icon', ['name' => 'tag'])</span>
     <div>
@@ -62,10 +75,36 @@
       <div class="stat-note">Keuntungan kotor</div>
     </div>
   </div>
+  @endcan
 </div>
+
+@if($byRecorder->isNotEmpty())
+<div class="panel">
+  <div class="panel-head">@include('admin.partials.icon', ['name' => 'users']) Penjualan per orang · {{ $periodLabel }}</div>
+  <div class="table-wrap">
+    <table class="table table-flat">
+      <tr>
+        <th>Nama</th>
+        <th>Transaksi</th>
+        <th>Qty</th>
+        <th>Omzet</th>
+      </tr>
+      @foreach($byRecorder as $row)
+      <tr>
+        <td>{{ $row['name'] }}</td>
+        <td>{{ $row['orders'] }}</td>
+        <td>{{ $row['qty'] }}</td>
+        <td>Rp{{ number_format($row['revenue'], 0, ',', '.') }}</td>
+      </tr>
+      @endforeach
+    </table>
+  </div>
+</div>
+@endif
 
 <div class="panel form-panel">
 <div class="panel-head">@include('admin.partials.icon', ['name' => 'cart']) Catat penjualan</div>
+<p class="hint sale-actor">Tercatat atas nama <b>{{ auth()->user()->name }}</b>. Login dengan akun yang menjual.</p>
 <form class="form sale-form" method="post" action="{{ route('admin.sales.store') }}" id="sale-form">
   @csrf
   <div>
@@ -167,10 +206,11 @@
   <form method="get" class="toolbar-form">
     <input type="hidden" name="from" value="{{ $from }}">
     <input type="hidden" name="to" value="{{ $to }}">
+    @if($recordedBy)<input type="hidden" name="recorded_by" value="{{ $recordedBy }}">@endif
     <input name="q" value="{{ $search }}" placeholder="Cari SKU, pembeli, channel…">
     <button class="btn gray" type="submit">Cari</button>
     @if($search !== '')
-      <a class="btn ghost" href="{{ route('admin.sales.index', ['from' => $from, 'to' => $to]) }}">Reset</a>
+      <a class="btn ghost" href="{{ route('admin.sales.index', array_filter(['from' => $from, 'to' => $to, 'recorded_by' => $recordedBy])) }}">Reset</a>
     @endif
   </form>
 </div>
@@ -183,9 +223,12 @@
     <th>SKU / Varian</th>
     <th>Qty</th>
     <th>Jual</th>
+    @can('view-financials')
     <th>HPP</th>
     <th>Laba kotor</th>
+    @endcan
     <th>Pembeli</th>
+    <th>Dicatat</th>
     <th>Aksi</th>
   </tr>
   @forelse($orders as $order)
@@ -205,10 +248,13 @@
       </td>
       <td>{{ $item->quantity }}</td>
       <td>{{ $item->total_formatted }}</td>
+      @can('view-financials')
       <td>Rp{{ number_format($item->cogs_total, 0, ',', '.') }}</td>
       <td class="profit">{{ $item->gross_profit_formatted }}</td>
+      @endcan
       @if($loop->first)
         <td rowspan="{{ $itemCount }}" class="order-cell">{{ $order->customer_name ?: '—' }}</td>
+        <td rowspan="{{ $itemCount }}" class="order-cell">{{ $order->creator?->name ?: '—' }}</td>
       @endif
       <td>
         <div class="row-actions">
@@ -216,12 +262,14 @@
             <a class="btn gray compact" href="{{ route('admin.returns.index', ['order_item_id' => $item->id]) }}">Retur</a>
           @endif
           @if($loop->first)
+            @can('delete-records')
             @unless($order->items->sum(fn ($i) => $i->returns->count()))
             <form method="post" action="{{ route('admin.sales.destroy', $order) }}" onsubmit="return confirm('Hapus seluruh transaksi ini? Stok semua item akan dikembalikan.')">
               @csrf @method('DELETE')
               <button class="btn red compact" type="submit">Hapus order</button>
             </form>
             @endunless
+            @endcan
           @endif
         </div>
       </td>
@@ -229,7 +277,7 @@
     @endforeach
   @empty
   <tr>
-    <td colspan="10" class="empty-state">
+    <td colspan="{{ auth()->user()->can('view-financials') ? 11 : 9 }}" class="empty-state">
       {{ $search !== '' ? 'Transaksi tidak ditemukan untuk pencarian ini.' : 'Belum ada penjualan di periode ini.' }}
     </td>
   </tr>

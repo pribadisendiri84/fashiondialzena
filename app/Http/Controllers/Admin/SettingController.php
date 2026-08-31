@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Ability;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use Illuminate\Http\Request;
@@ -10,6 +11,8 @@ class SettingController extends Controller
 {
     public function edit()
     {
+        $this->authorize(Ability::ManageSettings->value);
+
         return view('admin.settings', [
             'wa' => Setting::getValue('wa_number', '6287777626067'),
         ]);
@@ -17,6 +20,8 @@ class SettingController extends Controller
 
     public function update(Request $request)
     {
+        $this->authorize(Ability::ManageSettings->value);
+
         $data = $request->validate([
             'wa_number' => ['required', 'string', 'max:20'],
         ]);

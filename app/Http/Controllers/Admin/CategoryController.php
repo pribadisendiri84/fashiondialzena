@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Ability;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
@@ -33,6 +34,8 @@ class CategoryController extends Controller
 
     public function destroy(Category $category)
     {
+        $this->authorize(Ability::DeleteRecords->value);
+
         if ($category->products()->exists()) {
             return back()->withErrors(['Kategori masih dipakai produk. Pindahkan produk dulu.']);
         }

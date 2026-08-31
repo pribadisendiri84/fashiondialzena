@@ -5,13 +5,16 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
     public function showLogin()
     {
         if (Auth::check()) {
-            return redirect()->route('admin.dashboard');
+            return redirect()->route(Auth::user()->adminHomeRouteName());
         }
 
         return view('admin.login');
@@ -24,11 +27,16 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
+        $this->ensureIsNotRateLimited($request);
+
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            RateLimiter::clear($this->throttleKey($request));
             $request->session()->regenerate();
 
-            return redirect()->intended(route('admin.dashboard'));
+            return redirect()->intended(route($request->user()->adminHomeRouteName()));
         }
+
+        RateLimiter::hit($this->throttleKey($request), 60);
 
         return back()->withErrors([
             'email' => 'Email atau password salah.',
@@ -42,5 +50,23 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('admin.login');
+    }
+
+    private function ensureIsNotRateLimited(Request $request): void
+    {
+        if (! RateLimiter::tooManyAttempts($this->throttleKey($request), 5)) {
+            return;
+        }
+
+        $seconds = RateLimiter::availableIn($this->throttleKey($request));
+
+        throw ValidationException::withMessages([
+            'email' => 'Terlalu banyak percobaan login. Coba lagi dalam '.$seconds.' detik.',
+        ]);
+    }
+
+    private function throttleKey(Request $request): string
+    {
+        return Str::transliterate(Str::lower((string) $request->input('email')).'|'.$request->ip());
     }
 }

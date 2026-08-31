@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'product_id',
+    'created_by',
     'sku',
     'color',
     'size',
@@ -34,6 +35,11 @@ class ProductVariant extends Model
             $variant->color = trim((string) $variant->color);
             $variant->size = trim((string) $variant->size);
         });
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function product(): BelongsTo

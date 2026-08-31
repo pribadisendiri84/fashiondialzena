@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 #[Fillable([
     'name',
     'category_id',
+    'created_by',
     'img_front',
     'img_back',
     'rating',
@@ -33,6 +34,11 @@ class Product extends Model
             'is_active' => 'boolean',
             'rating' => 'decimal:1',
         ];
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function category(): BelongsTo

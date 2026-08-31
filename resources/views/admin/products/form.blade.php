@@ -2,10 +2,10 @@
 @section('title', $product->exists ? 'Edit produk' : 'Upload produk')
 @section('content')
 <h1>{{ $product->exists ? 'Edit produk' : 'Upload produk' }}</h1>
-<p class="sub">Produk induk + SKU (warna/ukuran). Harga pokok & harga jual ada di level SKU.</p>
+    <p class="sub">Produk induk + SKU (warna/ukuran). Harga jual ada di level SKU.@can('view-financials') Harga pokok juga di SKU.@endcan</p>
 
-@unless($cloudinaryReady ?? false)
-  <div class="alert err">Cloudinary belum siap. Isi <code>CLOUDINARY_URL</code> di `.env`, atau paste link manual di bawah.</div>
+@unless($storageReady ?? false)
+  <div class="alert err">Link folder foto belum ada. Di VPS/lokal jalankan <code>php artisan storage:link</code>, lalu refresh.</div>
 @endunless
 
 <form class="form" method="post" enctype="multipart/form-data" action="{{ $product->exists ? route('admin.products.update', $product) : route('admin.products.store') }}">
@@ -47,10 +47,12 @@
     <label>Stok awal</label>
     <input type="number" name="stock" min="0" value="{{ old('stock', 0) }}" required>
   </div>
+  @can('view-financials')
   <div>
     <label>Harga pokok / HPP (Rp)</label>
     <input name="cost_price" value="{{ old('cost_price', 0) }}" placeholder="80000" required>
   </div>
+  @endcan
   <div>
     <label>Harga jual (Rp)</label>
     <input name="sell_price" value="{{ old('sell_price') }}" placeholder="150000" required>
@@ -80,17 +82,17 @@
       </span>
     </div>
     <div class="photo-fields">
-      <input class="file-input" id="photo_{{ $side }}" type="file" name="photo_{{ $side }}" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp" {{ $product->exists ? '' : ($cloudinaryReady ? 'required' : '') }}>
+      <input class="file-input" id="photo_{{ $side }}" type="file" name="photo_{{ $side }}" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp">
       <input class="file-input" id="photo_{{ $side }}_cam" type="file" accept="image/*" capture="environment">
       <div class="photo-actions">
         <button class="btn gray" type="button" onclick="pickPhoto('photo_{{ $side }}')">Galeri / file</button>
         <button class="btn gray" type="button" onclick="pickPhoto('photo_{{ $side }}_cam')">Kamera</button>
         <button class="btn gray" type="button" id="photo_{{ $side }}_clear" onclick="clearPhoto('photo_{{ $side }}')" @unless($currentUrl) hidden @endunless>Hapus</button>
       </div>
-      <p class="hint" id="photo_{{ $side }}_name">Foto dikompres otomatis saat dipilih. Cek preview, lalu Simpan.</p>
+      <p class="hint" id="photo_{{ $side }}_name">Foto dikompres otomatis. Nama file: nama-produk-{{ $side === 'front' ? 'depan' : 'belakang' }}-xxxxxx.jpg</p>
       <label class="photo-url">
         <span>Atau tempel link foto</span>
-        <input name="{{ $urlField }}" id="{{ $urlField }}" value="{{ $currentUrl }}" placeholder="https://...">
+        <input name="{{ $urlField }}" id="{{ $urlField }}" value="{{ $currentUrl }}" placeholder="/storage/products/… atau https://…">
       </label>
     </div>
   </div>
@@ -121,7 +123,9 @@
     <th>SKU</th>
     <th>Warna</th>
     <th>Ukuran</th>
+    @can('view-financials')
     <th>HPP</th>
+    @endcan
     <th>Jual</th>
     <th>Stok</th>
     <th></th>
@@ -131,12 +135,18 @@
     <td><input form="sku-{{ $variant->id }}" name="sku" value="{{ $variant->sku }}" required></td>
     <td><input form="sku-{{ $variant->id }}" name="color" value="{{ $variant->color }}" placeholder="Hitam"></td>
     <td><input form="sku-{{ $variant->id }}" name="size" value="{{ $variant->size }}" placeholder="M"></td>
+    @can('view-financials')
     <td><input form="sku-{{ $variant->id }}" name="cost_price" value="{{ $variant->cost_price }}" required></td>
+    @endcan
     <td><input form="sku-{{ $variant->id }}" name="sell_price" value="{{ $variant->sell_price }}" required></td>
     <td>{{ $variant->stock }}</td>
     <td>
       <label class="hint"><input form="sku-{{ $variant->id }}" type="checkbox" name="is_active" value="1" @checked($variant->is_active)> Aktif</label>
       <button class="btn gray" form="sku-{{ $variant->id }}" type="submit">Update</button>
+      <div class="row-actions" style="margin-top:8px">
+        <a class="btn gray compact" href="{{ route('admin.variants.movements', $variant) }}">Riwayat</a>
+        <a class="btn gray compact" href="{{ route('admin.stock-ins.index', ['variant_id' => $variant->id]) }}">Stok masuk</a>
+      </div>
     </td>
   </tr>
   @endforeach
@@ -161,10 +171,12 @@
     <label>Stok awal</label>
     <input type="number" name="stock" min="0" value="{{ old('stock', 0) }}" required>
   </div>
+  @can('view-financials')
   <div>
     <label>HPP (Rp)</label>
     <input name="cost_price" value="{{ old('cost_price', 0) }}" required>
   </div>
+  @endcan
   <div>
     <label>Harga jual (Rp)</label>
     <input name="sell_price" value="{{ old('sell_price', $product->price) }}" required>

@@ -4,7 +4,10 @@
 <div class="page-head">
   <div>
     <h1>Retur barang</h1>
-    <p class="sub">Catat barang kembali. Jika dikembalikan ke stok, HPP penjualan ikut dibalik.</p>
+    <p class="sub">
+      Catat barang kembali.
+      @can('view-financials') Jika dikembalikan ke stok, HPP penjualan ikut dibalik. @endcan
+    </p>
   </div>
 </div>
 
@@ -91,6 +94,7 @@
     <th>Refund</th>
     <th>Stok+</th>
     <th>Alasan</th>
+    <th>Dicatat</th>
     <th></th>
   </tr>
   @forelse($returns as $return)
@@ -102,15 +106,18 @@
     <td>{{ $return->refund_amount_formatted }}</td>
     <td>{{ $return->restocked ? 'Ya' : 'Tidak' }}</td>
     <td>{{ $return->reason ?: '—' }}</td>
+    <td>{{ $return->creator?->name ?: '—' }}</td>
     <td>
+      @can('delete-records')
       <form method="post" action="{{ route('admin.returns.destroy', $return) }}" onsubmit="return confirm('Hapus catatan retur ini?')">
         @csrf @method('DELETE')
         <button class="btn red" type="submit">Hapus</button>
       </form>
+      @endcan
     </td>
   </tr>
   @empty
-  <tr><td colspan="8">Belum ada retur di periode ini.</td></tr>
+  <tr><td colspan="9">Belum ada retur di periode ini.</td></tr>
   @endforelse
 </table>
 </div>

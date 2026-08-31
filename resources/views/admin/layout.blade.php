@@ -10,7 +10,7 @@
 <body>
 <div class="shell">
 <aside class="sidebar" id="sidebar">
-  <a class="side-brand" href="{{ route('admin.dashboard') }}">
+  <a class="side-brand" href="{{ route(auth()->user()->adminHomeRouteName()) }}">
     <img src="{{ asset('images/logo-mark.png') }}" alt="">
     <span>ALZena<small>Temukan Fashion-mu di Sini</small></span>
   </a>
@@ -18,25 +18,34 @@
   <nav class="side-nav">
     @php
       $menu = [
-        ['route' => 'admin.dashboard', 'href' => route('admin.dashboard'), 'label' => 'Dashboard', 'icon' => 'home'],
-        ['route' => 'admin.ledger', 'href' => route('admin.ledger'), 'label' => 'Pembukuan', 'icon' => 'chart'],
-        ['route' => 'admin.products.*', 'href' => route('admin.products.index'), 'label' => 'Produk', 'icon' => 'box'],
-        ['route' => 'admin.sales.*', 'href' => route('admin.sales.index'), 'label' => 'Penjualan', 'icon' => 'cart'],
-        ['route' => 'admin.stock-ins.*', 'href' => route('admin.stock-ins.index'), 'label' => 'Stok masuk', 'icon' => 'inbox'],
-        ['route' => 'admin.returns.*', 'href' => route('admin.returns.index'), 'label' => 'Retur & Refund', 'icon' => 'undo'],
-        ['route' => 'admin.categories.*', 'href' => route('admin.categories.index'), 'label' => 'Kategori', 'icon' => 'tag'],
-        ['route' => 'admin.settings.*', 'href' => route('admin.settings.edit'), 'label' => 'Pengaturan', 'icon' => 'gear'],
+        ['route' => 'admin.dashboard', 'href' => route('admin.dashboard'), 'label' => 'Dashboard', 'icon' => 'home', 'ability' => 'view-dashboard'],
+        ['route' => 'admin.ledger', 'href' => route('admin.ledger'), 'label' => 'Pembukuan', 'icon' => 'chart', 'ability' => 'view-financials'],
+        ['route' => 'admin.products.*', 'href' => route('admin.products.index'), 'label' => 'Produk', 'icon' => 'box', 'ability' => 'manage-catalog'],
+        ['route' => 'admin.sales.*', 'href' => route('admin.sales.index'), 'label' => 'Penjualan', 'icon' => 'cart', 'ability' => 'record-sales'],
+        ['route' => 'admin.stock-ins.*', 'href' => route('admin.stock-ins.index'), 'label' => 'Stok masuk', 'icon' => 'inbox', 'ability' => 'record-stock'],
+        ['route' => 'admin.returns.*', 'href' => route('admin.returns.index'), 'label' => 'Retur & Refund', 'icon' => 'undo', 'ability' => 'record-returns'],
+        ['route' => 'admin.categories.*', 'href' => route('admin.categories.index'), 'label' => 'Kategori', 'icon' => 'tag', 'ability' => 'manage-catalog'],
+        ['route' => 'admin.users.*', 'href' => route('admin.users.index'), 'label' => 'Pengguna', 'icon' => 'users', 'ability' => 'manage-users'],
+        ['route' => 'admin.settings.*', 'href' => route('admin.settings.edit'), 'label' => 'Pengaturan', 'icon' => 'gear', 'ability' => 'manage-settings'],
       ];
     @endphp
     @foreach($menu as $item)
+      @if(empty($item['ability']) || auth()->user()->can($item['ability']))
       <a href="{{ $item['href'] }}" class="{{ request()->routeIs($item['route']) ? 'active' : '' }}">
         @include('admin.partials.icon', ['name' => $item['icon']])
         {{ $item['label'] }}
       </a>
+      @endif
     @endforeach
   </nav>
 
   <div class="side-foot">
+    @auth
+    <a class="side-user" href="{{ route('admin.account.edit') }}">
+      <b>{{ auth()->user()->name }}</b>
+      <span>{{ auth()->user()->resolvedRole()->label() }} · ganti password</span>
+    </a>
+    @endauth
     <a class="side-link" href="{{ route('home') }}" target="_blank">
       @include('admin.partials.icon', ['name' => 'external'])
       Lihat website
@@ -212,6 +221,7 @@ bindPhotoInputs('photo_back_cam', 'photo_back', 'photo_back_name');
   });
 });
 </script>
+@include('admin.partials.password-toggle-script')
 @stack('scripts')
 </body>
 </html>
