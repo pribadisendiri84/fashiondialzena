@@ -24,8 +24,15 @@ php artisan serve
 
 - Website: http://127.0.0.1:8000
 - Admin: http://127.0.0.1:8000/admin/login
-- Email: `admin@fashiondialzena.com`
-- Password: `admin123` (ganti setelah login pertama)
+- Password semua akun contoh: `admin123` (ganti setelah login pertama)
+
+| Email | Role |
+|-------|------|
+| `admin@fashiondialzena.com` | Owner |
+| `staf@fashiondialzena.com` | Staf |
+| `sales@fashiondialzena.com` | Penjualan |
+
+`php artisan db:seed` mengisi katalog + contoh **semua jenis input admin** (role, SKU warna/ukuran, semua channel jual, harga custom, stok masuk beda HPP, retur baik/cacat/rusak) **hanya jika belum ada order**. Jangan dijalankan di toko hidup yang sudah berisi transaksi.
 
 ## Deploy Hostinger
 
