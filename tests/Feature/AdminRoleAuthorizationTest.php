@@ -88,11 +88,32 @@ class AdminRoleAuthorizationTest extends TestCase
         $this->assertSame(200000, (int) $variant->fresh()->sell_price);
     }
 
-    public function test_owner_can_manage_users(): void
+    public function test_owner_cannot_manage_users(): void
     {
         $owner = User::factory()->owner()->create();
 
+        $this->actingAs($owner)->get(route('admin.users.index'))
+            ->assertRedirect(route('admin.dashboard'));
+        $this->actingAs($owner)->get(route('admin.history.index'))
+            ->assertRedirect(route('admin.dashboard'));
+
         $this->actingAs($owner)->post(route('admin.users.store'), [
+            'name' => 'Kasir',
+            'email' => 'kasir@alzena.test',
+            'password' => 'password1',
+            'role' => UserRole::Staff->value,
+        ])->assertRedirect(route('admin.dashboard'));
+
+        $this->assertDatabaseMissing('users', [
+            'email' => 'kasir@alzena.test',
+        ]);
+    }
+
+    public function test_superadmin_can_manage_users(): void
+    {
+        $super = User::factory()->superadmin()->create();
+
+        $this->actingAs($super)->post(route('admin.users.store'), [
             'name' => 'Kasir',
             'email' => 'kasir@alzena.test',
             'password' => 'password1',
@@ -105,17 +126,34 @@ class AdminRoleAuthorizationTest extends TestCase
         ]);
     }
 
-    public function test_owner_cannot_delete_own_account_or_last_owner(): void
+    public function test_superadmin_cannot_remove_last_superadmin_or_last_owner(): void
     {
+        $super = User::factory()->superadmin()->create();
         $owner = User::factory()->owner()->create();
 
-        $this->actingAs($owner)
+        $this->actingAs($super)
+            ->delete(route('admin.users.destroy', $super))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('users', ['id' => $super->id, 'deleted_at' => null]);
+
+        $this->actingAs($super)
+            ->put(route('admin.users.update', $super), [
+                'name' => $super->name,
+                'email' => $super->email,
+                'role' => UserRole::Owner->value,
+            ])
+            ->assertSessionHasErrors();
+
+        $this->assertTrue($super->fresh()->isSuperadmin());
+
+        $this->actingAs($super)
             ->delete(route('admin.users.destroy', $owner))
             ->assertRedirect();
 
-        $this->assertDatabaseHas('users', ['id' => $owner->id]);
+        $this->assertDatabaseHas('users', ['id' => $owner->id, 'deleted_at' => null]);
 
-        $this->actingAs($owner)
+        $this->actingAs($super)
             ->put(route('admin.users.update', $owner), [
                 'name' => $owner->name,
                 'email' => $owner->email,

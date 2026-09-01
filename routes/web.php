@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\HistoryController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\OrderReturnController;
 use App\Http\Controllers\Admin\ProductController;
@@ -63,7 +64,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('settings', [SettingController::class, 'update'])->name('settings.update');
         });
         Route::middleware('can:'.Ability::ManageUsers->value)->group(function () {
+            Route::get('riwayat', [HistoryController::class, 'index'])->name('history.index');
             Route::resource('users', UserController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::post('users/{user}/restore', [UserController::class, 'restore'])->withTrashed()->name('users.restore');
+            Route::post('products/{product}/restore', [ProductController::class, 'restore'])->withTrashed()->name('products.restore');
+            Route::post('categories/{category}/restore', [CategoryController::class, 'restore'])->withTrashed()->name('categories.restore');
         });
     });
 });

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\RecordsActivity;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -9,11 +10,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'name',
     'category_id',
     'created_by',
+    'updated_by',
     'img_front',
     'img_back',
     'rating',
@@ -25,6 +28,8 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 ])]
 class Product extends Model
 {
+    use RecordsActivity, SoftDeletes;
+
     protected function casts(): array
     {
         return [
@@ -36,14 +41,9 @@ class Product extends Model
         ];
     }
 
-    public function creator(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by');
-    }
-
     public function category(): BelongsTo
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsTo(Category::class)->withTrashed();
     }
 
     public function variants(): HasMany

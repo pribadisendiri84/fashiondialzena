@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\Ability;
 use App\Enums\UserRole;
+use App\Http\Controllers\Admin\Concerns\FiltersTrashed;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -11,13 +12,18 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    public function index()
+    use FiltersTrashed;
+
+    public function index(Request $request)
     {
         $this->authorize(Ability::ManageUsers->value);
 
+        $query = $this->applyTrashFilter(User::query()->orderBy('name'), $request);
+
         return view('admin.users.index', [
-            'users' => User::query()->orderBy('name')->get(),
+            'users' => $query->get(),
             'roles' => UserRole::cases(),
+            ...$this->trashViewData(User::class, $request),
         ]);
     }
 
@@ -38,8 +44,8 @@ class UserController extends Controller
 
         $data = $this->validated($request, $user);
 
-        if ($this->wouldRemoveLastOwner($user, $data['role'])) {
-            return back()->withErrors(['Minimal satu owner harus tersisa.']);
+        if ($this->wouldRemoveLastProtected($user, $data['role'])) {
+            return back()->withErrors(['Minimal satu superadmin dan satu owner harus tersisa.']);
         }
 
         if (blank($data['password'] ?? null)) {
@@ -59,13 +65,21 @@ class UserController extends Controller
             return back()->withErrors(['Tidak bisa menghapus akun sendiri.']);
         }
 
-        if ($this->wouldRemoveLastOwner($user, UserRole::Staff)) {
-            return back()->withErrors(['Minimal satu owner harus tersisa.']);
+        if ($this->wouldRemoveLastProtected($user, UserRole::Staff)) {
+            return back()->withErrors(['Minimal satu superadmin dan satu owner harus tersisa.']);
         }
 
         $user->delete();
 
         return redirect()->route('admin.users.index')->with('ok', 'Pengguna dihapus.');
+    }
+
+    public function restore(User $user)
+    {
+        $this->authorize(Ability::ManageUsers->value);
+        $user->restore();
+
+        return redirect()->route('admin.users.index', ['trashed' => 1])->with('ok', 'Pengguna dipulihkan.');
     }
 
     /**
@@ -85,16 +99,23 @@ class UserController extends Controller
         return $data;
     }
 
-    private function wouldRemoveLastOwner(User $user, UserRole $nextRole): bool
+    private function wouldRemoveLastProtected(User $user, UserRole $nextRole): bool
     {
-        if (! $user->isOwner() || $nextRole === UserRole::Owner) {
-            return false;
+        if ($user->isSuperadmin() && $nextRole !== UserRole::Superadmin) {
+            return ! User::query()
+                ->where('role', UserRole::Superadmin)
+                ->where('id', '!=', $user->id)
+                ->exists();
         }
 
-        return ! User::query()
-            ->where('role', UserRole::Owner)
-            ->where('id', '!=', $user->id)
-            ->exists();
+        if ($user->isOwner() && $nextRole !== UserRole::Owner) {
+            return ! User::query()
+                ->where('role', UserRole::Owner)
+                ->where('id', '!=', $user->id)
+                ->exists();
+        }
+
+        return false;
     }
 
     private function currentUser(): User

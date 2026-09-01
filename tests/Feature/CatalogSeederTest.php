@@ -23,10 +23,13 @@ class CatalogSeederTest extends TestCase
     {
         $this->seed(CatalogSeeder::class);
 
+        $super = User::query()->where('email', 'superadmin@fashiondialzena.com')->first();
         $owner = User::query()->where('email', 'admin@fashiondialzena.com')->first();
         $staff = User::query()->where('email', 'staf@fashiondialzena.com')->first();
         $sales = User::query()->where('email', 'sales@fashiondialzena.com')->first();
 
+        $this->assertNotNull($super);
+        $this->assertTrue($super->isSuperadmin());
         $this->assertNotNull($owner);
         $this->assertTrue($owner->isOwner());
         $this->assertTrue(Hash::check('admin123', $owner->password));
@@ -67,6 +70,6 @@ class CatalogSeederTest extends TestCase
 
         $this->assertSame(7, Order::query()->count());
         $this->assertSame(3, OrderReturn::query()->count());
-        $this->assertSame(3, User::query()->count());
+        $this->assertSame(4, User::query()->count());
     }
 }

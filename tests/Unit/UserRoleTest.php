@@ -8,9 +8,21 @@ use PHPUnit\Framework\TestCase;
 
 class UserRoleTest extends TestCase
 {
-    public function test_owner_has_every_ability(): void
+    public function test_superadmin_has_every_ability(): void
     {
         foreach (Ability::cases() as $ability) {
+            $this->assertTrue(UserRole::Superadmin->allows($ability));
+        }
+    }
+
+    public function test_owner_has_every_ability_except_manage_users(): void
+    {
+        foreach (Ability::cases() as $ability) {
+            if ($ability === Ability::ManageUsers) {
+                $this->assertFalse(UserRole::Owner->allows($ability));
+                continue;
+            }
+
             $this->assertTrue(UserRole::Owner->allows($ability));
         }
     }

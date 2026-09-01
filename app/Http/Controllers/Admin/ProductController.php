@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\Ability;
+use App\Http\Controllers\Admin\Concerns\FiltersTrashed;
 use App\Http\Controllers\Concerns\ResolvesFinancialInput;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
@@ -17,15 +18,19 @@ use RuntimeException;
 
 class ProductController extends Controller
 {
+    use FiltersTrashed;
     use ResolvesFinancialInput;
 
     public function index(Request $request)
     {
         $search = trim((string) $request->input('q'));
-        $query = Product::query()
-            ->with(['category', 'variants'])
-            ->withSum('orderItems as sold_qty', 'quantity')
-            ->latest();
+        $query = $this->applyTrashFilter(
+            Product::query()
+                ->with(['category', 'variants'])
+                ->withSum('orderItems as sold_qty', 'quantity')
+                ->latest(),
+            $request
+        );
 
         $query->when($search !== '', function ($q) use ($search) {
             $q->where(function ($match) use ($search) {
@@ -47,6 +52,7 @@ class ProductController extends Controller
             'skuCount' => ProductVariant::query()->where('is_active', true)->count(),
             'stock' => (int) ProductVariant::query()->sum('stock'),
             'lowCount' => ProductVariant::query()->where('is_active', true)->where('stock', '<=', 3)->count(),
+            ...$this->trashViewData(Product::class, $request),
         ]);
     }
 
@@ -117,19 +123,21 @@ class ProductController extends Controller
         return redirect()->route('admin.products.edit', $product)->with('ok', 'Produk diperbarui.');
     }
 
-    public function destroy(Product $product, ProductImageStore $images)
+    public function destroy(Product $product)
     {
         $this->authorize(Ability::DeleteRecords->value);
 
-        if ($product->orderItems()->exists() || $product->stockIns()->exists()) {
-            return back()->withErrors(['Produk sudah punya riwayat stok/penjualan. Nonaktifkan saja jika tidak ingin ditampilkan.']);
-        }
-
-        $images->deleteIfLocal($product->img_front);
-        $images->deleteIfLocal($product->img_back);
         $product->delete();
 
-        return redirect()->route('admin.products.index')->with('ok', 'Produk dihapus.');
+        return redirect()->route('admin.products.index')->with('ok', 'Produk dihapus. Superadmin bisa memulihkan.');
+    }
+
+    public function restore(Product $product)
+    {
+        $this->authorize(Ability::ManageUsers->value);
+        $product->restore();
+
+        return redirect()->route('admin.products.index', ['trashed' => 1])->with('ok', 'Produk dipulihkan.');
     }
 
     private function validatedProduct(Request $request, bool $creating, ProductImageStore $images, ?Product $product = null): array

@@ -6,11 +6,14 @@
     <h1>Produk</h1>
     <p class="sub">Kelola katalog, SKU, harga, dan stok produk.</p>
   </div>
+  @unless($trashed)
   <div class="actions head-actions">
     <a class="btn gray" href="{{ route('admin.stock-ins.index') }}">@include('admin.partials.icon', ['name' => 'inbox']) Tambah stok</a>
     <a class="btn" href="{{ route('admin.products.create') }}">@include('admin.partials.icon', ['name' => 'box']) Upload produk</a>
   </div>
+  @endunless
 </div>
+@include('admin.partials.scope-tabs')
 
 <div class="stat-row stat-row-4">
   <div class="stat">
@@ -36,9 +39,10 @@
     <span class="panel-title">@include('admin.partials.icon', ['name' => 'box']) Daftar produk</span>
     <form method="get" class="toolbar-form">
       @if($filter)<input type="hidden" name="filter" value="{{ $filter }}">@endif
+      @if($trashed)<input type="hidden" name="trashed" value="1">@endif
       <input name="q" value="{{ $search }}" placeholder="Cari nama, SKU, kategori…">
       <button class="btn gray" type="submit">Cari</button>
-      @if($search !== '')<a class="btn ghost" href="{{ route('admin.products.index', array_filter(['filter' => $filter])) }}">Reset</a>@endif
+      @if($search !== '')<a class="btn ghost" href="{{ route('admin.products.index', array_filter(['filter' => $filter, 'trashed' => $trashed ? 1 : null])) }}">Reset</a>@endif
     </form>
   </div>
   <div class="filter-tabs">
@@ -49,21 +53,25 @@
       'featured' => 'Best Product',
       'low' => 'Stok menipis',
     ] as $value => $label)
-      <a class="{{ ($filter ?? '') === $value ? 'active' : '' }}" href="{{ route('admin.products.index', array_filter(['filter' => $value, 'q' => $search])) }}">{{ $label }}</a>
+      <a class="{{ ($filter ?? '') === $value ? 'active' : '' }}" href="{{ route('admin.products.index', array_filter(['filter' => $value, 'q' => $search, 'trashed' => $trashed ? 1 : null])) }}">{{ $label }}</a>
     @endforeach
   </div>
   <div class="table-wrap">
   <table class="table table-flat">
   <tr><th>Produk</th><th>Kategori</th><th>SKU</th><th>Harga</th><th>Laku</th><th>Sisa</th><th>Label</th><th>Aksi</th></tr>
   @forelse($products as $product)
-  <tr>
+  <tr class="{{ $product->trashed() ? 'is-deleted' : '' }}">
     <td>
       <div class="product-cell">
         <img class="thumb" src="{{ $product->img_front }}" alt="">
-        <div><b>{{ $product->name }}</b><span>{{ $product->variants->first()?->sku ?: 'Belum ada SKU' }}</span></div>
+        <div>
+          <b>{{ $product->name }}</b>
+          <span>{{ $product->variants->first()?->sku ?: 'Belum ada SKU' }}</span>
+          @include('admin.partials.timestamps', ['model' => $product])
+        </div>
       </div>
     </td>
-    <td>{{ $product->category->name }}</td>
+    <td>{{ $product->category?->name ?? '—' }}</td>
     <td>{{ $product->variants->count() }} varian</td>
     <td>{{ $product->price_formatted }}</td>
     <td>{{ (int) $product->sold_qty }}</td>
@@ -75,19 +83,18 @@
       @unless($product->is_active)<span class="badge" style="background:#eee;color:#777">Nonaktif</span>@endunless
     </td>
     <td>
-      <div class="row-actions">
-      <a class="btn gray compact" href="{{ route('admin.products.edit', $product) }}">Edit / SKU</a>
-      @can('delete-records')
-      <form method="post" action="{{ route('admin.products.destroy', $product) }}" onsubmit="return confirm('Hapus produk ini?')">
-        @csrf @method('DELETE')
-        <button class="btn red compact" type="submit">Hapus</button>
-      </form>
-      @endcan
-      </div>
+      @include('admin.partials.row-actions', [
+        'item' => $product,
+        'edit' => $product->trashed() ? null : route('admin.products.edit', $product),
+        'editLabel' => 'Edit / SKU',
+        'destroy' => auth()->user()?->can('delete-records') ? route('admin.products.destroy', $product) : null,
+        'restore' => route('admin.products.restore', $product),
+        'confirm' => 'Hapus produk ini? Superadmin bisa memulihkan.',
+      ])
     </td>
   </tr>
   @empty
-  <tr><td colspan="8" class="empty-state">Produk tidak ditemukan.</td></tr>
+  <tr><td colspan="8" class="empty-state">{{ $trashed ? 'Tidak ada produk terhapus.' : 'Produk tidak ditemukan.' }}</td></tr>
   @endforelse
 </table>
   </div>

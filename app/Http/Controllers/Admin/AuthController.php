@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -28,6 +29,12 @@ class AuthController extends Controller
         ]);
 
         $this->ensureIsNotRateLimited($request);
+
+        if (User::onlyTrashed()->where('email', $credentials['email'])->exists()) {
+            return back()->withErrors([
+                'email' => 'Akun ini sudah dihapus. Minta superadmin memulihkan akses.',
+            ])->onlyInput('email');
+        }
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             RateLimiter::clear($this->throttleKey($request));

@@ -42,7 +42,7 @@ class DashboardController extends Controller
         $netRevenue = $revenuePeriod - $refundPeriod;
         $netCogs = $cogsPeriod - $cogsReversedPeriod;
 
-        $canSeeTeam = $request->user()->can(Ability::ManageUsers->value);
+        $canSeeTeam = $request->user()->can(Ability::ViewDashboard->value);
         $lowSkus = ProductVariant::query()
             ->with('product')
             ->where('is_active', true)

@@ -26,6 +26,7 @@
         ['route' => 'admin.returns.*', 'href' => route('admin.returns.index'), 'label' => 'Retur & Refund', 'icon' => 'undo', 'ability' => 'record-returns'],
         ['route' => 'admin.categories.*', 'href' => route('admin.categories.index'), 'label' => 'Kategori', 'icon' => 'tag', 'ability' => 'manage-catalog'],
         ['route' => 'admin.users.*', 'href' => route('admin.users.index'), 'label' => 'Pengguna', 'icon' => 'users', 'ability' => 'manage-users'],
+        ['route' => 'admin.history.*', 'href' => route('admin.history.index'), 'label' => 'Riwayat', 'icon' => 'history', 'ability' => 'manage-users'],
         ['route' => 'admin.settings.*', 'href' => route('admin.settings.edit'), 'label' => 'Pengaturan', 'icon' => 'gear', 'ability' => 'manage-settings'],
       ];
     @endphp

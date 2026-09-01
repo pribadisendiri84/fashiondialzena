@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Concerns\RecordsActivity;
 use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -15,7 +17,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, RecordsActivity, SoftDeletes;
 
     /**
      * @return array<string, string>
@@ -32,6 +34,11 @@ class User extends Authenticatable
     public function resolvedRole(): UserRole
     {
         return $this->role ?? UserRole::Owner;
+    }
+
+    public function isSuperadmin(): bool
+    {
+        return $this->resolvedRole() === UserRole::Superadmin;
     }
 
     public function isOwner(): bool
@@ -52,7 +59,7 @@ class User extends Authenticatable
     public function adminHomeRouteName(): string
     {
         return match ($this->resolvedRole()) {
-            UserRole::Owner => 'admin.dashboard',
+            UserRole::Superadmin, UserRole::Owner => 'admin.dashboard',
             UserRole::Staff => 'admin.products.index',
             UserRole::Sales => 'admin.sales.index',
         };

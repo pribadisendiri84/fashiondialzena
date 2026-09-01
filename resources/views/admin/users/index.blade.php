@@ -2,8 +2,10 @@
 @section('title', 'Pengguna')
 @section('content')
 <h1>Pengguna</h1>
-<p class="sub">Owner: semua. Staf: operasional tanpa HPP. Penjualan: catat jual dan retur saja.</p>
+<p class="sub">Hanya superadmin yang bisa menambah pengguna. Owner, staf, dan penjualan tidak bisa membuat akun baru.</p>
+@include('admin.partials.scope-tabs')
 
+@unless($trashed)
 <form class="form" method="post" action="{{ route('admin.users.store') }}">
   @csrf
   <div>
@@ -28,11 +30,24 @@
   </div>
   <div class="full"><button class="btn" type="submit">Tambah pengguna</button></div>
 </form>
+@endunless
 
 <table class="table" style="margin-top:18px">
   <tr><th>Nama</th><th>Email</th><th>Peran</th><th>Password baru</th><th></th></tr>
-  @foreach($users as $user)
-  <tr>
+  @forelse($users as $user)
+  <tr class="{{ $user->trashed() ? 'is-deleted' : '' }}">
+    @if($user->trashed())
+      <td><b>{{ $user->name }}</b></td>
+      <td>{{ $user->email }}</td>
+      <td>{{ $user->resolvedRole()->label() }}</td>
+      <td>@include('admin.partials.timestamps', ['model' => $user])</td>
+      <td>
+        @include('admin.partials.row-actions', [
+          'item' => $user,
+          'restore' => route('admin.users.restore', $user),
+        ])
+      </td>
+    @else
     <td colspan="4">
       <form method="post" action="{{ route('admin.users.update', $user) }}" class="form" style="grid-template-columns:repeat(4,minmax(0,1fr));margin:0">
         @csrf @method('PUT')
@@ -63,7 +78,10 @@
       </form>
       @endunless
     </td>
+    @endif
   </tr>
-  @endforeach
+  @empty
+  <tr><td colspan="5" class="empty-state">{{ $trashed ? 'Tidak ada pengguna terhapus.' : 'Belum ada pengguna.' }}</td></tr>
+  @endforelse
 </table>
 @endsection

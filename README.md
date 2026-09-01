@@ -28,7 +28,8 @@ php artisan serve
 
 | Email | Role |
 |-------|------|
-| `admin@fashiondialzena.com` | Owner |
+| `superadmin@fashiondialzena.com` | Superadmin — kelola pengguna, riwayat, pulihkan data hapus |
+| `admin@fashiondialzena.com` | Owner — tidak bisa membuat pengguna |
 | `staf@fashiondialzena.com` | Staf |
 | `sales@fashiondialzena.com` | Penjualan |
 
@@ -92,7 +93,11 @@ Paket gratis Cloudinary biasanya cukup untuk toko kecil. Secret hanya di `.env`,
 - `/admin/stock-ins` — tambah stok
 - `/admin/sales` — catat penjualan
 - `/admin/categories` — kategori
+- `/admin/users` — pengguna (superadmin)
+- `/admin/riwayat` — riwayat data (superadmin)
 - `/admin/settings` — nomor WhatsApp
+
+Hapus produk, kategori, dan pengguna memakai soft delete. Owner/staf tidak bisa membuat user baru. Hanya superadmin yang bisa memulihkan data terhapus.
 
 ## Git (identitas personal, sama pola dedet18)
 

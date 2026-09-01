@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\Ability;
+use App\Http\Controllers\Admin\Concerns\FiltersTrashed;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
@@ -10,10 +11,18 @@ use Illuminate\Support\Str;
 
 class CategoryController extends Controller
 {
-    public function index()
+    use FiltersTrashed;
+
+    public function index(Request $request)
     {
+        $query = $this->applyTrashFilter(
+            Category::query()->orderBy('sort_order')->orderBy('name'),
+            $request
+        );
+
         return view('admin.categories.index', [
-            'categories' => Category::query()->orderBy('sort_order')->orderBy('name')->get(),
+            'categories' => $query->get(),
+            ...$this->trashViewData(Category::class, $request),
         ]);
     }
 
@@ -36,13 +45,21 @@ class CategoryController extends Controller
     {
         $this->authorize(Ability::DeleteRecords->value);
 
-        if ($category->products()->exists()) {
+        if ($category->products()->withTrashed()->exists()) {
             return back()->withErrors(['Kategori masih dipakai produk. Pindahkan produk dulu.']);
         }
 
         $category->delete();
 
-        return redirect()->route('admin.categories.index')->with('ok', 'Kategori dihapus.');
+        return redirect()->route('admin.categories.index')->with('ok', 'Kategori dihapus. Superadmin bisa memulihkan.');
+    }
+
+    public function restore(Category $category)
+    {
+        $this->authorize(Ability::ManageUsers->value);
+        $category->restore();
+
+        return redirect()->route('admin.categories.index', ['trashed' => 1])->with('ok', 'Kategori dipulihkan.');
     }
 
     private function validated(Request $request): array

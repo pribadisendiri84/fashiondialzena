@@ -109,7 +109,7 @@
   </div>
 </div>
 
-@can('manage-users')
+@can('view-dashboard')
 @if($salesPerformance->isNotEmpty())
 <div class="panel">
   <div class="panel-head">@include('admin.partials.icon', ['name' => 'cart']) Performa penjualan · {{ $periodLabel }}</div>

@@ -19,6 +19,8 @@
     'calendar' => '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M3 10h18"/>',
     'home' => '<path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/>',
     'users' => '<circle cx="9" cy="8" r="3"/><path d="M3 19c0-3 2.5-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.2"/><path d="M21 19c0-2.2-1.6-3.8-3.8-4.2"/>',
+    'history' => '<path d="M4 12a8 8 0 101.6-4.8"/><path d="M4 5v4h4"/><path d="M12 8v5l3 2"/>',
+    'search' => '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-3.5-3.5"/>',
   ];
 @endphp
 <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">{!! $paths[$name] ?? $paths['box'] !!}</svg>
