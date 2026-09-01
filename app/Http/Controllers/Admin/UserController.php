@@ -108,9 +108,9 @@ class UserController extends Controller
                 ->exists();
         }
 
-        if ($user->isOwner() && $nextRole !== UserRole::Owner) {
+        if ($user->isAdmin() && $nextRole !== UserRole::Admin) {
             return ! User::query()
-                ->where('role', UserRole::Owner)
+                ->whereIn('role', [UserRole::Admin->value, 'owner'])
                 ->where('id', '!=', $user->id)
                 ->exists();
         }

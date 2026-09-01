@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -27,13 +28,23 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'role' => UserRole::class,
         ];
+    }
+
+    /**
+     * @return Attribute<UserRole, UserRole|string|null>
+     */
+    protected function role(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value) => UserRole::fromDatabase($value),
+            set: fn (UserRole|string|null $value) => $value instanceof UserRole ? $value->value : $value,
+        );
     }
 
     public function resolvedRole(): UserRole
     {
-        return $this->role ?? UserRole::Owner;
+        return $this->role ?? UserRole::Admin;
     }
 
     public function isSuperadmin(): bool
@@ -41,9 +52,9 @@ class User extends Authenticatable
         return $this->resolvedRole() === UserRole::Superadmin;
     }
 
-    public function isOwner(): bool
+    public function isAdmin(): bool
     {
-        return $this->resolvedRole() === UserRole::Owner;
+        return $this->resolvedRole() === UserRole::Admin;
     }
 
     public function isStaff(): bool
@@ -59,7 +70,7 @@ class User extends Authenticatable
     public function adminHomeRouteName(): string
     {
         return match ($this->resolvedRole()) {
-            UserRole::Superadmin, UserRole::Owner => 'admin.dashboard',
+            UserRole::Superadmin, UserRole::Admin => 'admin.dashboard',
             UserRole::Staff => 'admin.products.index',
             UserRole::Sales => 'admin.sales.index',
         };

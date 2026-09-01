@@ -15,15 +15,15 @@ class UserRoleTest extends TestCase
         }
     }
 
-    public function test_owner_has_every_ability_except_manage_users(): void
+    public function test_admin_has_every_ability_except_manage_users(): void
     {
         foreach (Ability::cases() as $ability) {
             if ($ability === Ability::ManageUsers) {
-                $this->assertFalse(UserRole::Owner->allows($ability));
+                $this->assertFalse(UserRole::Admin->allows($ability));
                 continue;
             }
 
-            $this->assertTrue(UserRole::Owner->allows($ability));
+            $this->assertTrue(UserRole::Admin->allows($ability));
         }
     }
 

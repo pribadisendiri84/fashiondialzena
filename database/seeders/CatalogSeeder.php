@@ -21,7 +21,7 @@ class CatalogSeeder extends Seeder
     public function run(): void
     {
         $this->user('Superadmin', 'superadmin@fashiondialzena.com', UserRole::Superadmin);
-        $owner = $this->user('Admin', 'admin@fashiondialzena.com', UserRole::Owner);
+        $owner = $this->user('Admin', 'admin@fashiondialzena.com', UserRole::Admin);
         $staff = $this->user('Staf Toko', 'staf@fashiondialzena.com', UserRole::Staff);
         $sales = $this->user('Tim Penjualan', 'sales@fashiondialzena.com', UserRole::Sales);
 

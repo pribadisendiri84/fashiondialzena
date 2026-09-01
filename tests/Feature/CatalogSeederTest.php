@@ -31,7 +31,7 @@ class CatalogSeederTest extends TestCase
         $this->assertNotNull($super);
         $this->assertTrue($super->isSuperadmin());
         $this->assertNotNull($owner);
-        $this->assertTrue($owner->isOwner());
+        $this->assertTrue($owner->isAdmin());
         $this->assertTrue(Hash::check('admin123', $owner->password));
         $this->assertSame(UserRole::Staff, $staff?->role);
         $this->assertSame(UserRole::Sales, $sales?->role);

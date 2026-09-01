@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('role', 20)->default(UserRole::Staff->value)->after('password');
         });
 
-        DB::table('users')->update(['role' => UserRole::Owner->value]);
+        DB::table('users')->update(['role' => UserRole::Admin->value]);
     }
 
     public function down(): void

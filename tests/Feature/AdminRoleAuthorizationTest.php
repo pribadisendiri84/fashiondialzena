@@ -141,7 +141,7 @@ class AdminRoleAuthorizationTest extends TestCase
             ->put(route('admin.users.update', $super), [
                 'name' => $super->name,
                 'email' => $super->email,
-                'role' => UserRole::Owner->value,
+                'role' => UserRole::Admin->value,
             ])
             ->assertSessionHasErrors();
 
@@ -161,7 +161,7 @@ class AdminRoleAuthorizationTest extends TestCase
             ])
             ->assertSessionHasErrors();
 
-        $this->assertTrue($owner->fresh()->isOwner());
+        $this->assertTrue($owner->fresh()->isAdmin());
     }
 
     public function test_sales_role_is_limited_to_selling(): void

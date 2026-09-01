@@ -5,7 +5,7 @@ namespace App\Enums;
 enum UserRole: string
 {
     case Superadmin = 'superadmin';
-    case Owner = 'owner';
+    case Admin = 'admin';
     case Staff = 'staff';
     case Sales = 'sales';
 
@@ -13,7 +13,7 @@ enum UserRole: string
     {
         return match ($this) {
             self::Superadmin => 'Superadmin',
-            self::Owner => 'Admin',
+            self::Admin => 'Admin',
             self::Staff => 'Staf',
             self::Sales => 'Penjualan',
         };
@@ -23,7 +23,7 @@ enum UserRole: string
     {
         return match ($this) {
             self::Superadmin => true,
-            self::Owner => $ability !== Ability::ManageUsers,
+            self::Admin => $ability !== Ability::ManageUsers,
             self::Staff => match ($ability) {
                 Ability::ViewDashboard,
                 Ability::ViewFinancials,
@@ -46,6 +46,17 @@ enum UserRole: string
                 Ability::ManageCatalog,
                 Ability::RecordStock => false,
             },
+        };
+    }
+
+    public static function fromDatabase(?string $value): self
+    {
+        return match ($value) {
+            'owner', 'admin' => self::Admin,
+            'superadmin' => self::Superadmin,
+            'staff' => self::Staff,
+            'sales' => self::Sales,
+            default => self::Admin,
         };
     }
 }
