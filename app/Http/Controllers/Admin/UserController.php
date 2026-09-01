@@ -45,7 +45,7 @@ class UserController extends Controller
         $data = $this->validated($request, $user);
 
         if ($this->wouldRemoveLastProtected($user, $data['role'])) {
-            return back()->withErrors(['Minimal satu superadmin dan satu owner harus tersisa.']);
+            return back()->withErrors(['Minimal satu superadmin dan satu admin harus tersisa.']);
         }
 
         if (blank($data['password'] ?? null)) {
@@ -66,7 +66,7 @@ class UserController extends Controller
         }
 
         if ($this->wouldRemoveLastProtected($user, UserRole::Staff)) {
-            return back()->withErrors(['Minimal satu superadmin dan satu owner harus tersisa.']);
+            return back()->withErrors(['Minimal satu superadmin dan satu admin harus tersisa.']);
         }
 
         $user->delete();

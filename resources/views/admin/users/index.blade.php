@@ -2,7 +2,7 @@
 @section('title', 'Pengguna')
 @section('content')
 <h1>Pengguna</h1>
-<p class="sub">Hanya superadmin yang bisa menambah pengguna. Owner, staf, dan penjualan tidak bisa membuat akun baru.</p>
+<p class="sub">Hanya superadmin yang bisa menambah pengguna. Admin, staf, dan penjualan tidak bisa membuat akun baru.</p>
 @include('admin.partials.scope-tabs')
 
 @unless($trashed)
